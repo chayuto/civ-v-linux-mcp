@@ -16,23 +16,42 @@ Dates are the day the change was committed; "live tNNN" is the game turn it was 
 
 ## Unreleased
 
-- **The tactical view lists where the unit can end this turn's move: `reach`** (runtime v337, 2127 tests). A human
-  selecting a unit sees its movement range lit; the view gave the six neighbours only, and the engine's pathfinder is
-  closed to Lua (`GeneratePath` NYI, `Plot:MovementCost` crashes the game). `reach.plots` is `[x, y, moves left]` for
-  every plot the move can end on, nearest first: step_cost.lua's one-step rule (now priced from any plot, not only the
-  unit's own) walked outward, most moves left first. A river crossing, embarking and zone of control end the move
-  where they would on a neighbour; own and neutral units are passed through and not stopped on (`H.move_refusal`
-  takes `transit`); a visible enemy's plot, closed borders, a city at peace, unrevealed plots and deep ocean without
-  the tech or promotion are not entered. Fogged plots are priced as last seen and named in `fogged`; `next_turn` when
-  the unit has no moves now; `capped` at 6 plots out or 90 rows; absent for air and trade units. This turn only.
-  Mocked tests only: not yet read against the engine's own highlight in a live game.
+## 2.14.0 -- Where a unit can go this turn (2026-11-13)
+
+Runtime v339, 9 tools, 2129 tests.
+
+- **The tactical view lists where the unit can end this turn's move: `reach`** (runtime v337-v339). A human selecting
+  a unit sees its movement range lit; the view gave the six neighbours only, and the engine's pathfinder is closed to
+  Lua (`GeneratePath` NYI, `Plot:MovementCost` crashes the game). `reach.plots` is `[x, y, moves left]` for every plot
+  the move can end on, nearest first: step_cost.lua's one-step rule (now priced from any plot, not only the unit's
+  own) walked outward, most moves left first. A river crossing, embarking and zone of control end the move where they
+  would on a neighbour; own and neutral units are passed through and not stopped on (`H.move_refusal` takes
+  `transit`); a visible enemy's plot, closed borders, a city at peace, unrevealed plots and deep ocean without the
+  tech or promotion are not entered. Fogged plots are priced as last seen and named in `fogged`; `next_turn` when the
+  unit has no moves now; `capped` at 6 plots out or 90 rows; absent for air and trade units. This turn only. About
+  0.08 s and 70-750 bytes a view. **Read against the engine live** (combat-lab save t266, 2026-11-13): 34 move orders
+  to listed plots -- Workers, Trebuchets, Keshiks with 5 moves, an embarked Worker making landfall, roads,
+  zone of control -- each arrived on the plot with the moves `reach` gave; six orders to plots it did not list
+  stopped short or were refused.
+- **A neighbour's `cost` / `left` are what the move order does, not the direct step** (runtime v339; found by that
+  read-back). A Musketman's E neighbour read `left 0` under a Warrior's zone of control while `reach` said 0.67 by the
+  road behind; the order arrived with 0.67, as did two more -- the engine's pathfinder goes around. Such a neighbour
+  now carries the detour's `cost` / `left` and `detour: true`; `zoc` still names what the direct step meets.
+- **Two embarked units never share a water plot, and the move says so before it is sent** (runtime v338; found by
+  that read-back). A Worker had embarked onto a plot, an Infantry was ordered there, the engine left it standing
+  (it counts every embarked unit as one class, combat or civilian) and the after-the-fact hint called the Worker a
+  combat unit. `H.move_refusal` refuses it up front naming the unit (`blocking_unit`), on the order, the neighbour
+  row and `reach` alike; seen live after the fix.
 
 - **Teammates can enter each other's territory without an open-borders deal** (runtime v336).
   The shared move/tactical guard compared player ids but omitted team ids, so ordinary units in a
   same-team hotseat game were refused at a teammate's border, including on city plots the city guard
   already allowed. Same-team destinations now skip only the closed-border refusal; other movement
   checks and foreign-team border rules remain in force. Regression cases cover combat and civilian
-  units, ordinary and city plots, and live and fog-safe checks.
+  units, ordinary and city plots, and live and fog-safe checks. Contributed by Pavel Zun from the GitHub fork
+  `diregoblin/civ-v-linux-mcp`. Seen live 2026-11-13 in a two-human hotseat hosted with both seats on team 0: a
+  Warrior's neighbour owned by the teammate read `open` and the order arrived; the one owned by the Ottomans was
+  refused for closed borders.
 
 - **A mission to a unit the ruins replaced is refused naming the successor, as a move is** (GitLab #169 read-back,
   three-seat hotseat t28, 2026-11-05): the planted-ruins check saw the move reply name the Atlatlist that replaced

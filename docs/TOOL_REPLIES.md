@@ -252,7 +252,9 @@ How to read the tactical view's `grid`, `move`, `vis`, `sight` and `fog`:
   An open step carries `cost` (moves it spends) and `left` (moves after it; with none left now, from next turn's
   full moves); `zoc` names the enemy unit or city whose zone of control ends the move there (leaving a plot next
   to an enemy for another plot next to it spends every move). A river crossed without a bridged road, embarking
-  and disembarking also spend every move. The cost follows the engine's rules on the plots as you see them.
+  and disembarking also spend every move. `detour`: the order's pathfinder reaches this neighbour another way
+  and keeps more moves than the direct step would (`cost` / `left` are the detour's; `zoc` still names what the
+  direct step meets). The cost follows the engine's rules on the plots as you see them.
 - **reach**: every plot this turn's move can end on, the highlight a human sees on selecting the unit: `plots`
   rows are `[x, y, moves left on arrival]`, nearest first; `moves` is what the walk started with (`next_turn`:
   the unit has none now, so this is next turn's reach from here). It is the one-step cost walked outward: a plot

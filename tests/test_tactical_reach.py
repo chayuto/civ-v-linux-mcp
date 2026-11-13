@@ -64,6 +64,24 @@ class ReachTests(unittest.TestCase):
         assert(by['4,3'] == 0, 'from (3,3) to (4,3) is one zone-of-control plot to another: ' .. tostring(by['4,3']))
         """)
 
+    def test_a_neighbour_says_what_the_order_does_when_the_pathfinder_goes_around(self):
+        """Live combat-lab t266: a Musketman's E neighbour read left 0 under a Warrior's zone of control, reach said
+        0.67 by the road behind, and the move order arrived with 0.67 -- the engine paths around."""
+        self.run_lua("""
+        local u = unit(1, 0, 1, 2, 2, { moves = 3 })
+        u.MaxMoves = function() return 180 end
+        unit(7, 63, 2, 3, 2)                             -- a Brute on E: NE (2,3) and SE (2,1) are in its reach
+        local v = view()
+        local by, ne = reach_of(v), nil
+        for _, n in ipairs(v.neighbors) do if n.dir == 'NE' then ne = n end end
+        assert(by['2,3'] == 1, 'by NW (1,3), which the Brute does not touch: ' .. tostring(by['2,3']))
+        assert(ne.left == 1 and ne.cost == 2 and ne.detour == true, H.json(ne))
+        assert(ne.zoc and ne.zoc.id == 7, 'the direct step is still explained: ' .. H.json(ne))
+        for _, n in ipairs(v.neighbors) do
+          if n.dir == 'W' then assert(n.detour == nil and n.left == 2, 'a plain step is not a detour: ' .. H.json(n)) end
+        end
+        """)
+
     def test_a_river_crossing_spends_every_move(self):
         self.run_lua("""
         unit(1, 0, 1, 2, 2)
@@ -117,6 +135,25 @@ class ReachTests(unittest.TestCase):
         by = reach_of(view())
         assert(by['1,2'] == 0, 'embarking spends every move: ' .. tostring(by['1,2']))
         assert(by['0,2'] == nil, 'so the water behind it is next turn: ' .. tostring(by['0,2']))
+        """)
+
+    def test_two_embarked_units_never_share_a_plot(self):
+        """Live combat-lab t266: reach listed the water plot a Worker had embarked onto for an Infantry; the engine
+        counts every embarked unit as one class and left the Infantry where it stood."""
+        self.run_lua("""
+        Teams[0].CanEmbark = function() return true end
+        local u = unit(1, 0, 1, 2, 2)
+        plot(1, 2, { water = true })
+        GameInfo.Units[4].Description = 'Worker'
+        unit(9, 0, 4, 1, 2, { civilian = true })         -- my Worker, embarked on W
+        local by = reach_of(view())
+        assert(by['1,2'] == nil, 'a civilian afloat keeps a combat unit out: ' .. H.json(by))
+        local r = H.move_refusal(u, P['1,2'], 0, true)
+        assert(r and r.err:find('embarked WORKER 9', 1, true) and r.blocking_unit.id == 9, H.json(r))
+        assert(H.move_refusal(u, P['1,2'], 0, true, true) == nil, 'passing through it is fine')
+        plot(1, 2)                                       -- the same pair on land shares the plot
+        unit(9, 0, 4, 1, 2, { civilian = true })
+        assert(H.move_refusal(u, P['1,2'], 0, true) == nil)
         """)
 
     def test_deep_ocean_needs_the_tech(self):

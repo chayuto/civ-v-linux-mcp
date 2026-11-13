@@ -315,16 +315,17 @@ local function unit_reach(u, pid, team, stepper)
   end)
   local out = { moves = stepper.have / stepper.denom }
   if u:MovesLeft() <= 0 then out.next_turn = true end
-  local plots, fogged = {}, {}
+  local plots, fogged, left_at = {}, {}, {}
   for i, r in ipairs(rows) do
     if i > REACH_PLOTS then capped = true; break end
     plots[#plots + 1] = { r.q:GetX(), r.q:GetY(), r.left }
+    left_at[key(r.q)] = r.left
     if not r.q:IsVisible(team, false) then fogged[#fogged + 1] = { r.q:GetX(), r.q:GetY() } end
   end
   if #plots > 0 then out.plots = plots else out.none = true end
   if #fogged > 0 then out.fogged = fogged end
   if capped then out.capped = true end
-  return out
+  return out, left_at
 end
 
 -- A plot's grid cell: ground letter then occupant letter (the legend is the reply reference, docs/TOOL_REPLIES.md state(what="unit", view="tactical"); GitLab #152).
@@ -700,8 +701,22 @@ function H.tactical_view(unit_id, pid, radius, detail)
   }
   -- `reach`: every plot this turn's move can end on. Not for a trade unit (it follows its route) or one that cannot move.
   if stepper and not (u.IsTrade and u:IsTrade()) and not (u.IsImmobile and u:IsImmobile()) then
-    local okr, r = pcall(unit_reach, u, pid, team, stepper)
-    if okr then out.reach = r end
+    local okr, r, left_at = pcall(unit_reach, u, pid, team, stepper)
+    if okr then
+      out.reach = r
+      -- A move order is the engine's pathfinder, not the direct step: where the direct step spends every move (zone
+      -- of control, a river) and a way around keeps some, the unit goes around. Live combat-lab t266 (2026-11-13): a
+      -- Musketman's E neighbour read left 0 under a Warrior's zone of control, reach said 0.67 by the road behind,
+      -- and the order arrived with 0.67. The neighbour says what the order does; `detour` marks it, `zoc` still
+      -- names what the direct step would have met.
+      for _, n in ipairs(neighbors) do
+        local best = n.move == "open" and n.left and left_at[tostring(n.x) .. "," .. tostring(n.y)]
+        if best and best > n.left then
+          n.cost = math.floor((r.moves - best) * 100 + 0.5) / 100
+          n.left, n.detour = best, true
+        end
+      end
+    end
   end
   if moves <= 0 then out.note = "this unit has no moves left this turn; `move` shows what order(to='unit', action='move') would do next turn from here" end
   if full then

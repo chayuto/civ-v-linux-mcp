@@ -1,17 +1,19 @@
-# Resume here -- 2026-11-13: main = 2.13.1 + three unreleased changes (runtime v337, 9 tools, 2127 tests).
-**Two changes since 2026-11-05, both mocked-tests-only, neither seen live** (the stack was down; no game on screen):
-(1) runtime v336, cherry-picked from the GitHub fork `diregoblin/civ-v-linux-mcp` (branch
-`fix/team-territory-movement`, author Pavel Zun): teammates enter each other's territory without an open-borders
-deal -- `H.move_refusal` compared player ids, never teams. The other owner-vs-pid sites in the runtime were read:
-each is gated by IsAtWar, so a teammate is never called hostile there. (2) runtime v337: the tactical view's `reach`,
-every plot this turn's move can end on as `[x, y, moves left]` -- step_cost.lua's rule priced from any plot and walked
-outward (tests/test_tactical_reach.py). **Next: read `reach` against the engine's own movement highlight live** (a
-2-move unit beside a river and a hill, a mounted unit on a road, an embarked unit at the coast/ocean line, a unit
-next to an enemy), then a same-team hotseat for v336. Also looked at: `corytodd/civ5-mcp` -- a Windows mod that
-writes one JSON snapshot per turn to SQLite (Modding.OpenUserData) for a read-only advisor server; older than this
-project (v12 in 2026-01), shares no code with it, and nothing in it is worth a refactor here (replies are already
-minified; no orders, no fog rules beyond "what a human knows"). Forks: `diregoblin` (the fix above) and `chayuto`
-(no commits of its own). **No GitLab issue is open.**
+# Resume here -- 2026-11-13 (evening): main = 2.14.0 (runtime v339, 9 tools, 2129 tests; tagged and released on both forges).
+**2.14.0 "Where a unit can go this turn" is out, all of it seen live.** (1) `reach` on the tactical view (v337): every
+plot this turn's move can end on as `[x, y, moves left]`; read on the combat-lab save (t266) against 34 real move
+orders, every one arriving with the moves listed, six orders to unlisted plots stopping short or refused.
+(2) Found by that read-back: a neighbour's `cost` / `left` now follow the pathfinder's detour (`detour: true`, v339),
+and two embarked units never share a water plot (refused up front, v338). (3) v336, cherry-picked from the GitHub
+fork `diregoblin/civ-v-linux-mcp` (Pavel Zun): teammates enter each other's territory; seen live in a two-human
+hotseat hosted with `host_hotseat(launch=False)`, `PreGame.SetTeam(1, 0)` in the StagingRoom, then `launch_game()`,
+the plots given owners with `Plot:SetOwner`. Also looked at: `corytodd/civ5-mcp` -- a Windows mod writing one JSON
+snapshot per turn to SQLite for a read-only advisor server; older than this project, shares no code with it, nothing
+worth a refactor. The other fork, `chayuto`, has no commits of its own. **State left behind:** the game is at the
+main menu (stack up: Steam, Civ5XP, tunerd on the plain daemon); `session(action="main_menu")` autosaved over the
+single quick slot twice, so `single/quick/QuickSave` is now the combat-lab game at t266 with test moves made --
+`load_latest` no longer opens what it did before; every named save is untouched. The session server of the Claude
+Code client was started at v337 source: restart it (/mcp) before playing, or it re-installs v337 over v339.
+**No GitLab issue is open.**
 
 # Previous -- 2026-11-05 (evening): main = 2.13.1 + one unreleased fix (runtime v335, 9 tools, 2115 tests).
 **The last two open issues, the trackers #167 (Codex, seat 0) and #173 (Grok, seat 1), are closed**: every fix of

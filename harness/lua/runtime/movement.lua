@@ -248,6 +248,23 @@ function H.move_refusal(u, dest, pid, fog_safe, transit)
   end
   -- NOTE: CanMoveOrAttackInto(dest) is false for perfectly legal multi-step destinations (live: a
   -- warrior moving into its own adjacent city), so it is only consulted for the mountain case above.
+  -- Two embarked units never share a water plot, combat or civilian (CvUnit::AreUnitsOfSameType counts every
+  -- embarked unit as one class). Live combat-lab t266 (2026-11-13): a Worker had embarked onto (46,28), the view's
+  -- reach still listed that plot for an Infantry, and the engine left the Infantry where it stood.
+  if dest and not transit and DomainTypes and dest.GetNumUnits and u:GetDomainType() == DomainTypes.DOMAIN_LAND
+     and dest:IsWater() and not dest:IsCity() then
+    for i = 0, dest:GetNumUnits() - 1 do
+      local o = dest:GetUnit(i)
+      if o and o:GetOwner() == u:GetOwner() and o:GetID() ~= u:GetID()
+         and o:GetDomainType() == DomainTypes.DOMAIN_LAND and not (o.IsTrade and o:IsTrade()) then
+        local what = "unit"
+        pcall(function() what = GameInfo.Units[o:GetUnitType()].Type:gsub("^UNIT_", "") end)
+        return { ok = false, err = "that water plot already holds your embarked " .. tostring(what) .. " " .. tostring(o:GetID())
+                 .. " (two embarked units never share a plot, combat or civilian); pick another plot or move that unit first",
+                 blocking_unit = { id = o:GetID(), type = tostring(what) } }
+      end
+    end
+  end
   -- One combat unit per tile: a move whose destination already holds one of our own combat units
   -- (e.g. "send the new bowman to Nanjing" while a warrior garrisons it) has no legal end plot and is
   -- dropped silently by the engine (live, turn 110). Refuse it up front.
