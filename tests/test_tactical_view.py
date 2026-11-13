@@ -564,5 +564,24 @@ class TacticalViewQueryTests(unittest.TestCase):
         self.assertTrue(callable(mcp_server.tactical_view))
 
 
+class TargetRowsCarryTheirOrderTests(unittest.TestCase):
+    """Maya t240 (2026-11-13): `targets` was the one list of the view whose rows had a prose `how` and no `call`."""
+
+    def test_a_ranged_row_shoots_and_a_melee_or_city_row_walks_in(self):
+        g = Game.__new__(Game)
+        g.seat = 0
+        g._legends_said = set()
+        g.q = lambda code, timeout=None: {"ok": True, "neighbors": [], "targets": [
+            {"x": 33, "y": 65, "kind": "ranged",
+             "how": "order(to='unit', action='mission', args={mission='MISSION_RANGE_ATTACK', x, y})"},
+            {"x": 33, "y": 64, "kind": "melee", "how": "order(to='unit', action='move') onto this plot attacks"},
+            {"x": 32, "y": 64, "city": "Fez", "how": "order(to='unit', action='move') onto this plot assaults the city"}]}
+        shoot, melee, city = g.tactical_view(12)["targets"]
+        self.assertEqual(shoot["call"], {"tool": "order", "args": {"to": "unit", "action": "mission", "id": 12, "args": {
+            "mission": "MISSION_RANGE_ATTACK", "x": 33, "y": 65}}})
+        self.assertEqual(melee["call"]["args"], {"to": "unit", "action": "move", "id": 12, "args": {"x": 33, "y": 64}})
+        self.assertEqual(city["call"]["args"]["args"], {"x": 32, "y": 64})
+
+
 if __name__ == "__main__":
     unittest.main()

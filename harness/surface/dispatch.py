@@ -192,9 +192,13 @@ def pick(key: tuple[str, str], args: dict) -> str | Refusal:
                            choices=sorted({k[0].partition(":")[2] for k in INDEX if k[0].startswith(tool + ":")}),
                            hint=hint)
         hint = None
-        if tool == "state" and what in ID_HINTS:
-            hint = f"`id` is needed too; {ID_HINTS[what]}"
-        return Refusal(f"{key[0]} has no {key[1]!r}", choices=sorted(k[1] for k in INDEX if k[0] == key[0]), hint=hint)
+        choices = sorted(k[1] for k in INDEX if k[0] == key[0])
+        if tool == "state" and what in ID_HINTS and args.get("id") is None:
+            hint = f"`id` is needed too; {ID_HINTS[what]}"   # said only when it is missing (2026-11-13 play test)
+        if tool == "state" and key[1] == "default":
+            # No view was given and the object has no plain read: say that, not "has no 'default'".
+            return Refusal(f"state(what={what!r}) needs a view: one of {' / '.join(choices)}", choices=choices, hint=hint)
+        return Refusal(f"{key[0]} has no {key[1]!r}", choices=choices, hint=hint)
     if len(names) == 1:
         return names[0]
     chosen = DISAMBIGUATE.get(key)

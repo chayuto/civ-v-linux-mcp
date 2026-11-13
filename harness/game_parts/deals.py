@@ -161,9 +161,22 @@ class DealsMixin:
                 try:
                     rel = self.relationship(other, pid)
                     hist = (rel.get("history") if isinstance(rel, dict) else None) or []
+                    # Who sits across the table, as the trade screen's header names them: `from` / `to` are the
+                    # scratch deal's two ends and an AI's offer reads from: us (live Maya t237: Portugal's research
+                    # agreement came back as from 0, to 1 and no name anywhere in question()).
+                    if isinstance(rel, dict):
+                        r["other"] = other
+                        for key in ("civ", "leader"):
+                            if rel.get(key):
+                                r[key] = rel[key]
                 except TunerdError:
                     pass
             last = hist[-1] if hist else {}
+            if last.get("state") == "DIPLO_UI_STATE_TRADE_AI_MAKES_OFFER" and last.get("text"):
+                # The leader's latest line with an offer, and the turn it was said on (an older turn = an older offer).
+                r["speech"] = last["text"]
+                if last.get("turn") is not None:
+                    r["speech_turn"] = last["turn"]
             if last.get("state") == "DIPLO_UI_STATE_TRADE_AI_MAKES_OFFER" and "renew" in str(last.get("text", "")).lower():
                 r["renewal"] = True
                 for it in r.get("items", []):

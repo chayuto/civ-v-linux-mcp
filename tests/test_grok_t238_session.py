@@ -68,11 +68,19 @@ class InspectRefusalHintTests(unittest.TestCase):
 
     def test_an_object_that_takes_an_id_says_so_when_only_the_view_is_wrong(self):
         reply = D.pick(("state:city_state", "default"), {}).reply()
-        self.assertEqual(reply["err"], "state:city_state has no 'default'")
+        self.assertEqual(reply["err"], "state(what='city_state') needs a view: one of full / summary")
         self.assertEqual(reply["choices"], ["full", "summary"])
         self.assertTrue(reply["hint"].startswith("`id` is needed too; city-state ids"))
+        self.assertEqual(D.pick(("state:city_state", "nope"), {}).reply()["err"], "state:city_state has no 'nope'")
         for what, where in (("unit", "units"), ("city", "cities"), ("civ", "civs")):
             self.assertIn(f"state(what='{where}')", D.pick((f"state:{what}", "nope"), {}).reply()["hint"])
+
+    def test_an_id_that_was_given_is_not_asked_for_again(self):
+        # Maya t238 (2026-11-13): state(what="unit", id=<a barbarian's id>) answered "`id` is needed too".
+        reply = D.pick(("state:unit", "default"), {"id": 6070354}).reply()
+        self.assertEqual(reply["err"], "state(what='unit') needs a view: one of actions / home / tactical / targets")
+        self.assertNotIn("hint", reply)
+        self.assertNotIn("hint", D.pick(("state:city", "strike"), {"id": 0}).reply())
 
     def test_other_refusals_carry_no_hint(self):
         self.assertNotIn("hint", D.pick(("state:league", "nope"), {}).reply())

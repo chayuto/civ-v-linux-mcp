@@ -159,6 +159,15 @@ class ReadsMixin:
             for n in out["neighbors"]:
                 if isinstance(n, dict) and n.get("move") in ("open", "attack") and n.get("x") is not None:
                     n["call"] = A.act("move_unit", unit_id=int(unit_id), x=n["x"], y=n["y"])
+            # A target row too: its `how` is prose, the order beside it is the call to copy (Maya t240, 2026-11-13:
+            # the one list of the view without a `call`). A ranged row shoots, a melee or city row walks in.
+            for t in out.get("targets") or []:
+                if isinstance(t, dict) and t.get("x") is not None and t.get("y") is not None:
+                    if "MISSION_RANGE_ATTACK" in str(t.get("how", "")):
+                        t["call"] = A.act("unit_mission", unit_id=int(unit_id), mission="MISSION_RANGE_ATTACK",
+                                          x=t["x"], y=t["y"])
+                    else:
+                        t["call"] = A.act("move_unit", unit_id=int(unit_id), x=t["x"], y=t["y"])
             # GitLab #152: the legend once per process, a one-line key after (harness/legend.py).
             if not hasattr(self, "_legends_said"):
                 self._legends_said: set[str] = set()

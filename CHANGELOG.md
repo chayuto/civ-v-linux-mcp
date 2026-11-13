@@ -16,6 +16,19 @@ Dates are the day the change was committed; "live tNNN" is the game turn it was 
 
 ## Unreleased
 
+Found by a play test of the Maya game (t237 -> t242, 2026-11-13) through the nine tools; each seen live in that game.
+
+- **A deal on the table says who offers it.** `question()` on an AI's offer named nobody: the table read `from: 0,
+  to: 1` (the engine puts the active player first) and the civ, the leader and the line that came with the offer were
+  only in the turn status. The read now carries `other`, `civ`, `leader` and, for an AI's offer, `speech` /
+  `speech_turn` (live t239: India's renewal, t240: Carthage's and France's).
+- **A target row carries its order.** The tactical view's `targets` rows had a prose `how` and no `call`, the one list
+  of the view without one: a ranged row now carries the `MISSION_RANGE_ATTACK` order, a melee or city row the move
+  that attacks (live t240-t241: an Atlatlist's, a Gatling Gun's and a Longswordsman's rows, each copied and sent).
+- **A read that needs a view says so.** `state(what="unit", id=<id>)` answered "has no 'default'" and "`id` is needed
+  too" with the id given; it now says the object needs a view and lists them, and the id hint is said only when the
+  id is missing.
+
 ## 2.14.0 -- Where a unit can go this turn (2026-11-13)
 
 Runtime v339, 9 tools, 2129 tests.

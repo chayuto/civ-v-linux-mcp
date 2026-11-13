@@ -1,4 +1,20 @@
-# Resume here -- 2026-11-13 (evening): main = 2.14.0 (runtime v339, 9 tools, 2129 tests; tagged and released on both forges).
+# Resume here -- 2026-11-13 (late evening): main = 2.14.0 + three unreleased fixes (runtime v339 unchanged, 9 tools, 2134 tests).
+**A play test of the Maya game, t237 -> t242, through `scripts/mcp_session.py --seat 0`** (the Claude Code session
+server is still the v337 one: /mcp restarts it). Played: Portugal's and France's research agreements, India's and
+Carthage's renewals, two co-op war requests declined, the special-session host vote (the Maya host since t239), a
+caravan to Venice, three productions, and the barbarian Great War Infantry at Palenque shot down by the city, a
+Gatling Gun and a Composite Bowman and finished by the Longswordsman (every preview within the roll of the result;
+`reach` and its `next_turn` form read right on seven units). **Three gaps found, fixed, read back live, unreleased**
+(CHANGELOG Unreleased; Python only): a deal on the table names `other` / `civ` / `leader` / `speech`; the tactical
+view's `targets` rows carry a `call`; `state(what="unit", id)` without a view says a view is needed and no longer
+asks for the id it was given. Seen and left alone: a hold ordered at 0 moves is a one-turn skip (the reply says so);
+`trade_route`'s reply named another caravan's id (`matched: line_ambiguous`), the engine re-creates the unit.
+**State left behind:** the Maya game on screen at t242, my turn, five units waiting for orders; the quick slot is
+that state, copied to `single/Pacal_0242 maya-t242-playtest-2026-11-13`; note 1 of the notebook rewritten at t241.
+Logs: `logs/play-2026-11-13/` (gitignored). `.gitignore` now covers `.*_pat` and `tmp*/` (the repo is public).
+**No GitLab issue is open**; the three fixes ride in Unreleased until the next milestone.
+
+# Previous -- 2026-11-13 (evening): main = 2.14.0 (runtime v339, 9 tools, 2129 tests; tagged and released on both forges).
 **2.14.0 "Where a unit can go this turn" is out, all of it seen live.** (1) `reach` on the tactical view (v337): every
 plot this turn's move can end on as `[x, y, moves left]`; read on the combat-lab save (t266) against 34 real move
 orders, every one arriving with the moves listed, six orders to unlisted plots stopping short or refused.
