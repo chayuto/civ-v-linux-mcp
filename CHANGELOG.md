@@ -14,6 +14,12 @@ Two counters, on purpose (GitLab #26):
 
 Dates are the day the change was committed; "live tNNN" is the game turn it was checked on.
 
+## Unreleased
+
+- **`ACCESSIBILITY.md` follows the Accessibility Toolkit template** and opens by saying that the file is voluntary
+  (an optional item on GitHub's list; no hosted site or service here), claims no conformance, and promises no
+  resolution times a one-maintainer project could not keep. Documentation only.
+
 ## 2.14.1 -- Community files, and three finds from a play test (2026-11-13)
 
 Runtime v339 (unchanged), 9 tools, 2134 tests. Python and documentation only.
