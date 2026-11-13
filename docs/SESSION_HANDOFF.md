@@ -1,4 +1,15 @@
-# Resume here -- 2026-11-13 (late evening): main = 2.14.0 + three unreleased fixes (runtime v339 unchanged, 9 tools, 2134 tests).
+# Resume here -- 2026-11-13 (night): main = 2.14.1 (runtime v339 unchanged, 9 tools, 2134 tests; tagged and released).
+**2.14.1 is the community files plus the three play-test fixes below.** New at the root: `CONTRIBUTING.md`,
+`CODE_OF_CONDUCT.md` (Contributor Covenant 2.1, fetched from contributor-covenant.org; reports by confidential GitLab
+issue), `SECURITY.md` (confidential GitLab issue; no e-mail address anywhere), `ACCESSIBILITY.md` (no conformance
+claim). `.gitlab/issue_templates/{Bug,Proposal}.md` and `.gitlab/merge_request_templates/Default.md` are the working
+templates; `.github/ISSUE_TEMPLATE/` (two templates + `config.yml` with contact links to GitLab) and
+`.github/PULL_REQUEST_TEMPLATE.md` exist for GitHub's Community Standards checklist and send a visitor to GitLab.
+Every guide opens with the same statement: it applies to the one official, write-enabled repository, which exists
+only on GitLab; GitHub is a read-only mirror (issues and PRs off there; Discussions was still ON per the API that
+night). The README carries a "Where the project lives" note under the install pointer. Game state: as below.
+
+# Previous -- 2026-11-13 (late evening): main = 2.14.0 + three unreleased fixes (runtime v339 unchanged, 9 tools, 2134 tests).
 **A play test of the Maya game, t237 -> t242, through `scripts/mcp_session.py --seat 0`** (the Claude Code session
 server is still the v337 one: /mcp restarts it). Played: Portugal's and France's research agreements, India's and
 Carthage's renewals, two co-op war requests declined, the special-session host vote (the Maya host since t239), a

@@ -14,7 +14,17 @@ Two counters, on purpose (GitLab #26):
 
 Dates are the day the change was committed; "live tNNN" is the game turn it was checked on.
 
-## Unreleased
+## 2.14.1 -- Community files, and three finds from a play test (2026-11-13)
+
+Runtime v339 (unchanged), 9 tools, 2134 tests. Python and documentation only.
+
+- **The repository says where it lives and how to take part.** `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`
+  (Contributor Covenant 2.1), `SECURITY.md` (reports go in a confidential GitLab issue; what counts, and what is a
+  known property of the game's tuner port, a daemon without a seat table and the spectator page) and
+  `ACCESSIBILITY.md` (no conformance claimed; the spectator page's known limits). Each opens by saying that it
+  applies to the one official, write-enabled repository, which exists only on GitLab; the GitHub repository is a
+  read-only mirror. Issue and merge request templates under `.gitlab/` are the working ones; `.github/` carries the
+  same fields and sends a visitor to GitLab. The README says the same near the top.
 
 Found by a play test of the Maya game (t237 -> t242, 2026-11-13) through the nine tools; each seen live in that game.
 

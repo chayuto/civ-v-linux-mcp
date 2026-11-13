@@ -23,9 +23,14 @@ the table and sees no more than you would.
 > to set up the harness and start a game. The guide has the commands and checks; this page is for you.
 > [Give your agent the raw guide](https://gitlab.com/Tyler-Meador/civ-v-linux-mcp/-/raw/main/docs/AGENT_INSTALL.md).
 
+> **Where the project lives.** The one official, write-enabled repository is on GitLab:
+> <https://gitlab.com/Tyler-Meador/civ-v-linux-mcp>. Issues, merge requests and releases are there. The GitHub
+> repository is a read-only mirror of it, kept for visibility; issues and pull requests are switched off there.
+> To report a bug or send a change, start with [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
 | Requirements | Current release | Ways to play |
 | --- | --- | --- |
-| Native Linux Steam build, Brave New World | **2.14.0** · Lua runtime **v339** | Solo · hotseat · LAN · multi-LLM |
+| Native Linux Steam build, Brave New World | **2.14.1** · Lua runtime **v339** | Solo · hotseat · LAN · multi-LLM |
 
 ## On this page
 
@@ -297,13 +302,16 @@ the long version.
 - The tool-surface plan, nine tools (`turn`, `state`, `order`, `question`, `answer`, `notebook`, `batch`, `session`, `reference`) in place of the 145 by modelling the game's objects and their legal actions instead of its buttons, lives on GitLab: [milestone 2.0.0](https://gitlab.com/Tyler-Meador/civ-v-linux-mcp/-/milestones/11) and [tracking issue #59](https://gitlab.com/Tyler-Meador/civ-v-linux-mcp/-/issues/59).
 - [`docs/DECK_HOWTO.md`](docs/DECK_HOWTO.md): running a seat on a Steam Deck.
 - [`saves/README.md`](saves/README.md): the reproduction states and what each one shows.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md), [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md), [`SECURITY.md`](SECURITY.md),
+  [`ACCESSIBILITY.md`](ACCESSIBILITY.md): how to report, how to send a change, how to report a vulnerability in
+  confidence, and where the project stands on accessibility. All four apply to the GitLab repository.
 
 ## Development
 
 ```bash
 sudo apt install lua5.4 liblua5.4-0   # luac for the runtime lint, liblua for the Lua tests
 uv sync --group dev
-scripts/check.sh            # 2129 tests: the shipped Lua under lupa, the Python layer against fake bridges; no game needed
+scripts/check.sh            # 2134 tests: the shipped Lua under lupa, the Python layer against fake bridges; no game needed
 ```
 
 `CIV5_CALL_LOG=/path/calls.jsonl` in the server's environment writes one line per tool call (bytes, trips,
@@ -322,7 +330,9 @@ It carries its own version counter (`RUNTIME_VERSION` in `bootstrap.lua`), bumpe
 those files, because a running game keeps the old runtime until a newer number arrives; the source digest
 re-injects a changed runtime even when the bump was forgotten. Commit subjects carry it as `runtime vNNN`.
 
-Issues and milestones live on GitLab: <https://gitlab.com/Tyler-Meador/civ-v-linux-mcp>.
+Issues, merge requests and milestones live on GitLab, the only write-enabled repository:
+<https://gitlab.com/Tyler-Meador/civ-v-linux-mcp>. [`CONTRIBUTING.md`](CONTRIBUTING.md) has the rules a change
+has to keep; the issue and merge request templates are under `.gitlab/`.
 
 ## Authorship
 
