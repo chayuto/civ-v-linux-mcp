@@ -1,4 +1,6 @@
-# Resume here -- 2026-11-13 (night): main = 2.14.1 (runtime v339 unchanged, 9 tools, 2134 tests; tagged and released).
+# Resume here -- 2026-11-13 (night): main = 2.14.2 (runtime v339 unchanged, 9 tools, 2134 tests; tagged and released).
+**2.14.2 is docs only:** `ACCESSIBILITY.md` rewritten on the Accessibility Toolkit template (says the file is
+voluntary, no conformance claim, no fixed resolution times, names the maintainer as owner). 2.14.1, an hour earlier:
 **2.14.1 is the community files plus the three play-test fixes below.** New at the root: `CONTRIBUTING.md`,
 `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1, fetched from contributor-covenant.org; reports by confidential GitLab
 issue), `SECURITY.md` (confidential GitLab issue; no e-mail address anywhere), `ACCESSIBILITY.md` (no conformance

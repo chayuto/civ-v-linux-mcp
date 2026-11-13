@@ -30,7 +30,7 @@ the table and sees no more than you would.
 
 | Requirements | Current release | Ways to play |
 | --- | --- | --- |
-| Native Linux Steam build, Brave New World | **2.14.1** · Lua runtime **v339** | Solo · hotseat · LAN · multi-LLM |
+| Native Linux Steam build, Brave New World | **2.14.2** · Lua runtime **v339** | Solo · hotseat · LAN · multi-LLM |
 
 ## On this page
 
