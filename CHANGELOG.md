@@ -14,6 +14,16 @@ Two counters, on purpose (GitLab #26):
 
 Dates are the day the change was committed; "live tNNN" is the game turn it was checked on.
 
+## Unreleased
+
+- **`server.json`, the entry for the official MCP Registry** (`io.github.ty-meador/civ-v-llm-harness`; valid per
+  `mcp-publisher validate`, not yet published). It names a PyPI package started with `uvx`, the `--seat` argument and
+  the `CIV5_TUNERD_SOCK` / `CIV5_TUNERD_TOKEN` / `CIV5_CALL_LOG` variables; the repository it points to is the GitLab
+  one. For it: a `civ-v-llm-harness` console script (what `python -m harness.mcp_server` starts), `readme` and
+  project URLs in `pyproject.toml`, and the `mcp-name:` ownership line in the README. `tests/test_server_json.py`
+  holds its versions to `pyproject.toml` (2140 tests). Open before a PyPI upload: a wheel carries the Lua runtime but
+  not `docs/PLAYBOOK.md` / `docs/TOOL_REPLIES.md` (the `reference` tool's playbook), the shim or the launch scripts.
+
 ## 2.14.2 -- The accessibility statement, on a template (2026-11-13)
 
 Runtime v339 (unchanged), 9 tools, 2134 tests. Documentation only.

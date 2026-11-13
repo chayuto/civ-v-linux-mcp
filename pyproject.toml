@@ -2,9 +2,20 @@
 name = "civ-v-llm-harness"
 version = "2.14.2"
 description = "MCP server + harness letting an LLM play Sid Meier's Civilization V (Linux) via the FireTuner Lua socket"
+readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 dependencies = ["mcp>=1.2"]
+
+[project.urls]
+Repository = "https://gitlab.com/Tyler-Meador/civ-v-linux-mcp"
+Issues = "https://gitlab.com/Tyler-Meador/civ-v-linux-mcp/-/issues"
+Changelog = "https://gitlab.com/Tyler-Meador/civ-v-linux-mcp/-/blob/main/CHANGELOG.md"
+
+[project.scripts]
+# The MCP server under the package's own name, so `uvx civ-v-llm-harness` (server.json, the MCP Registry entry)
+# starts what `python -m harness.mcp_server` starts.
+civ-v-llm-harness = "harness.mcp_server:main"
 
 [tool.setuptools.packages.find]
 include = ["harness*"]
