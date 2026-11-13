@@ -199,6 +199,134 @@ local function river_crossing(a, b, d)
   return (ok and v) and true or nil
 end
 
+-- Where the unit can end this turn's move (the movement highlight a human sees on selecting it; 2026-11-06). The
+-- engine's own answers are closed: Unit:GeneratePath is NYI, GetPathEndTurnPlot needs the mouse pathfinder and
+-- Plot:MovementCost crashes the game (docs/LIMITATIONS.md). So this walks step_cost.lua's one-step rule outward
+-- from the unit, most moves left first: a plot is entered when the move order would not be refused in passing
+-- (H.move_refusal with `transit`: terrain, domain, a city at peace, closed borders), no visible enemy holds it
+-- (that is an attack, see `targets`) and the unit may cross its water (deep ocean needs the tech or promotion);
+-- a river crossing, embarking and zone of control spend every move exactly as on a neighbour. A plot is listed
+-- when the unit may also stop on it (the full H.move_refusal). Fog: unrevealed plots are never entered; a fogged
+-- one is priced as last seen and named in `fogged`, since it may hold what stops the move. This turn only:
+-- nothing here says how many turns a farther plot takes.
+local REACH_DISTANCE, REACH_PLOTS = 6, 90
+
+local function known_city(q, team)
+  local ok, v = pcall(function()
+    if not q:IsCity() then return false end
+    if q:IsVisible(team, false) then return true end
+    local c = q:GetPlotCity()
+    return (c and c:IsRevealed(team, false)) and true or false
+  end)
+  return (ok and v) and true or false
+end
+
+local function enemy_held(q, pid, team)
+  if not q:IsVisible(team, false) then return false end
+  if H.enemy_city_at(q, pid) then return true end
+  for i = 0, q:GetNumUnits() - 1 do
+    local o = q:GetUnit(i)
+    if o and o:GetOwner() ~= pid and not o:IsInvisible(team, false) then
+      local op = Players[o:GetOwner()]
+      if op and (op:IsBarbarian() or Teams[team]:IsAtWar(op:GetTeam())) then return true end
+    end
+  end
+  return false
+end
+
+-- Deep ocean: an embarked land unit needs a tech with EmbarkedAllWaterPassage (Astronomy) or an EmbarkedAllWater
+-- promotion (Polynesia); a ship is kept out by an OceanImpassable promotion, or OceanImpassableUntilAstronomy
+-- before that tech (CvUnit::canEnterTerrain). Read from the tables: the engine's Lua names no getter for either.
+local function ocean_barred(u, team)
+  local ocean = GameInfoTypes and GameInfoTypes.TERRAIN_OCEAN
+  if not ocean then return function() return false end end
+  local function on(v) return v == true or v == 1 end
+  local barred = false
+  pcall(function()
+    local passage = false
+    for row in GameInfo.Technologies() do
+      if on(row.EmbarkedAllWaterPassage) and Teams[team]:IsHasTech(row.ID) then passage = true end
+    end
+    if u:GetDomainType() == DomainTypes.DOMAIN_LAND then
+      barred = not passage
+      for row in GameInfo.UnitPromotions() do
+        if on(row.EmbarkedAllWater) and u:IsHasPromotion(row.ID) then barred = false end
+      end
+    else
+      for row in GameInfo.UnitPromotions() do
+        if u:IsHasPromotion(row.ID)
+           and (on(row.OceanImpassable) or (on(row.OceanImpassableUntilAstronomy) and not passage)) then
+          barred = true
+        end
+      end
+    end
+  end)
+  return function(q) return barred and q:GetTerrainType() == ocean end
+end
+
+local function unit_reach(u, pid, team, stepper)
+  local ux, uy = u:GetX(), u:GetY()
+  local start = Map.GetPlot(ux, uy)
+  local function key(q) return q:GetX() .. "," .. q:GetY() end
+  local no_ocean = ocean_barred(u, team)
+  local sk = key(start)
+  local best, plot_of, open, queued = { [sk] = stepper.have }, { [sk] = start }, { sk }, {}
+  local transit, capped = {}, false
+  while #open > 0 do
+    local bi = 1
+    for i = 2, #open do if best[open[i]] > best[open[bi]] then bi = i end end
+    local k = table.remove(open, bi)
+    queued[k] = nil
+    local from, left = plot_of[k], best[k]
+    if left > 0 then
+      for d = 0, 5 do
+        local q = Map.PlotDirection(from:GetX(), from:GetY(), d)
+        if q and q:IsRevealed(team, false) then
+          local qk = key(q)
+          if transit[qk] == nil then
+            transit[qk] = not (enemy_held(q, pid, team) or no_ocean(q) or H.move_refusal(u, q, pid, true, true))
+          end
+          if transit[qk] then
+            if Map.PlotDistance(ux, uy, q:GetX(), q:GetY()) > REACH_DISTANCE then
+              capped = true
+            else
+              local ok, _, raw = pcall(stepper.step, from, q, known_city(q, team), river_crossing(from, q, d), left)
+              if ok and raw and raw > (best[qk] or -1) then
+                best[qk], plot_of[qk] = raw, q
+                if not queued[qk] then queued[qk] = true; open[#open + 1] = qk end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+  local rows = {}
+  for k, q in pairs(plot_of) do
+    if k ~= sk and not H.move_refusal(u, q, pid, true) then
+      rows[#rows + 1] = { q = q, d = Map.PlotDistance(ux, uy, q:GetX(), q:GetY()),
+                          left = math.floor(best[k] / stepper.denom * 100 + 0.5) / 100 }
+    end
+  end
+  table.sort(rows, function(a, b)
+    if a.d ~= b.d then return a.d < b.d end
+    if a.q:GetY() ~= b.q:GetY() then return a.q:GetY() > b.q:GetY() end
+    return a.q:GetX() < b.q:GetX()
+  end)
+  local out = { moves = stepper.have / stepper.denom }
+  if u:MovesLeft() <= 0 then out.next_turn = true end
+  local plots, fogged = {}, {}
+  for i, r in ipairs(rows) do
+    if i > REACH_PLOTS then capped = true; break end
+    plots[#plots + 1] = { r.q:GetX(), r.q:GetY(), r.left }
+    if not r.q:IsVisible(team, false) then fogged[#fogged + 1] = { r.q:GetX(), r.q:GetY() } end
+  end
+  if #plots > 0 then out.plots = plots else out.none = true end
+  if #fogged > 0 then out.fogged = fogged end
+  if capped then out.capped = true end
+  return out
+end
+
 -- A plot's grid cell: ground letter then occupant letter (the legend is the reply reference, docs/TOOL_REPLIES.md state(what="unit", view="tactical"); GitLab #152).
 -- The ground is the terrain, or C for a city in sight: the city is the plot, its units are what stands on it, so a unit
 -- in a city keeps the city drawn (GitLab #177, Celts t4: a Scout on Edinburgh read ".@" and the city was gone).
@@ -246,8 +374,9 @@ end
 -- what was last seen and never a live occupant; an unrevealed one shows nothing but that it is unrevealed.
 -- Movement: `move` is move_unit's own answer before it sends anything (H.move_refusal, the same checks); an open
 -- step says what it costs this unit (`cost`, `left`, in moves) and names the enemy whose zone of control ends the
--- move there (`zoc`), from step_cost.lua (GitLab #180). There are no turns-to-reach: Unit:GeneratePath is NYI and
--- Plot:MovementCost crashes the game (docs/LIMITATIONS.md).
+-- move there (`zoc`), from step_cost.lua (GitLab #180); `reach` walks the same rule to every plot this turn's move
+-- can end on. There are no turns-to-reach: Unit:GeneratePath is NYI and Plot:MovementCost crashes the game
+-- (docs/LIMITATIONS.md).
 function H.tactical_view(unit_id, pid, radius, detail)
   local p = Players[pid]
   local u = p and p:GetUnitByID(unit_id)
@@ -465,8 +594,8 @@ function H.tactical_view(unit_id, pid, radius, detail)
 
   -- The six neighbours: coordinates, remembered terrain, river crossing, occupants, and move_unit's answer.
   local move_mission = info_id("MISSION_MOVE_TO")
-  local okc, step_cost = pcall(step_costs, u, pid)   -- nil: no cost is read (an air unit, or a getter failed)
-  if not okc then step_cost = nil end
+  local okc, step_cost, stepper = pcall(step_costs, u, pid)   -- nil: no cost is read (an air unit, or a getter failed)
+  if not okc then step_cost, stepper = nil, nil end
   local neighbors = {}
   for d = 0, 5 do
     local q = Map.PlotDirection(ux, uy, d)
@@ -569,6 +698,11 @@ function H.tactical_view(unit_id, pid, radius, detail)
     players = players,
     grid = { cols = cols, rows = rows },
   }
+  -- `reach`: every plot this turn's move can end on. Not for a trade unit (it follows its route) or one that cannot move.
+  if stepper and not (u.IsTrade and u:IsTrade()) and not (u.IsImmobile and u:IsImmobile()) then
+    local okr, r = pcall(unit_reach, u, pid, team, stepper)
+    if okr then out.reach = r end
+  end
   if moves <= 0 then out.note = "this unit has no moves left this turn; `move` shows what order(to='unit', action='move') would do next turn from here" end
   if full then
     local plots = {}

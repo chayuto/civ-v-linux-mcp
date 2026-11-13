@@ -16,6 +16,17 @@ Dates are the day the change was committed; "live tNNN" is the game turn it was 
 
 ## Unreleased
 
+- **The tactical view lists where the unit can end this turn's move: `reach`** (runtime v337, 2127 tests). A human
+  selecting a unit sees its movement range lit; the view gave the six neighbours only, and the engine's pathfinder is
+  closed to Lua (`GeneratePath` NYI, `Plot:MovementCost` crashes the game). `reach.plots` is `[x, y, moves left]` for
+  every plot the move can end on, nearest first: step_cost.lua's one-step rule (now priced from any plot, not only the
+  unit's own) walked outward, most moves left first. A river crossing, embarking and zone of control end the move
+  where they would on a neighbour; own and neutral units are passed through and not stopped on (`H.move_refusal`
+  takes `transit`); a visible enemy's plot, closed borders, a city at peace, unrevealed plots and deep ocean without
+  the tech or promotion are not entered. Fogged plots are priced as last seen and named in `fogged`; `next_turn` when
+  the unit has no moves now; `capped` at 6 plots out or 90 rows; absent for air and trade units. This turn only.
+  Mocked tests only: not yet read against the engine's own highlight in a live game.
+
 - **Teammates can enter each other's territory without an open-borders deal** (runtime v336).
   The shared move/tactical guard compared player ids but omitted team ids, so ordinary units in a
   same-team hotseat game were refused at a teammate's border, including on city plots the city guard

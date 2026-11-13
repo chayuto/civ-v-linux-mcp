@@ -1,4 +1,19 @@
-# Resume here -- 2026-11-05 (evening): main = 2.13.1 + one unreleased fix (runtime v335, 9 tools, 2115 tests).
+# Resume here -- 2026-11-13: main = 2.13.1 + three unreleased changes (runtime v337, 9 tools, 2127 tests).
+**Two changes since 2026-11-05, both mocked-tests-only, neither seen live** (the stack was down; no game on screen):
+(1) runtime v336, cherry-picked from the GitHub fork `diregoblin/civ-v-linux-mcp` (branch
+`fix/team-territory-movement`, author Pavel Zun): teammates enter each other's territory without an open-borders
+deal -- `H.move_refusal` compared player ids, never teams. The other owner-vs-pid sites in the runtime were read:
+each is gated by IsAtWar, so a teammate is never called hostile there. (2) runtime v337: the tactical view's `reach`,
+every plot this turn's move can end on as `[x, y, moves left]` -- step_cost.lua's rule priced from any plot and walked
+outward (tests/test_tactical_reach.py). **Next: read `reach` against the engine's own movement highlight live** (a
+2-move unit beside a river and a hill, a mounted unit on a road, an embarked unit at the coast/ocean line, a unit
+next to an enemy), then a same-team hotseat for v336. Also looked at: `corytodd/civ5-mcp` -- a Windows mod that
+writes one JSON snapshot per turn to SQLite (Modding.OpenUserData) for a read-only advisor server; older than this
+project (v12 in 2026-01), shares no code with it, and nothing in it is worth a refactor here (replies are already
+minified; no orders, no fog rules beyond "what a human knows"). Forks: `diregoblin` (the fix above) and `chayuto`
+(no commits of its own). **No GitLab issue is open.**
+
+# Previous -- 2026-11-05 (evening): main = 2.13.1 + one unreleased fix (runtime v335, 9 tools, 2115 tests).
 **The last two open issues, the trackers #167 (Codex, seat 0) and #173 (Grok, seat 1), are closed**: every fix of
 milestones 2.11.0-2.13.0 was read back live on the three-seat save `GrokVCodexVClaude` (hotseat/, t27 -> t29),
 one seat at a time through `scripts/mcp_session.py --seat N` (drivers and logs under `logs/readback-2026-11-05/`,

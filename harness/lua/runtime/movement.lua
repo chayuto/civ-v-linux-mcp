@@ -214,7 +214,9 @@ end
 -- then drops without a word. Shared with H.tactical_view so the view's "refused" is exactly move_unit's.
 -- fog_safe (the view) reads a fogged plot's owner as the last-seen one, never the live one; move_unit keeps
 -- its live read (the engine's own answer to the order would use it too).
-function H.move_refusal(u, dest, pid, fog_safe)
+-- `transit`: the plot is passed through, not stopped on -- the three one-per-tile refusals (my own combat unit, my
+-- own civilian, another player's unit at peace) do not apply; the tactical view's `reach` walks with it.
+function H.move_refusal(u, dest, pid, fog_safe, transit)
   -- Unit:GeneratePath is NYI in this build (throws). Plot:MovementCost crashed the live process
   -- (t183, 2026-09-19) even inside pcall -- do not call it. GetPathEndTurnPlot is nil without a
   -- mouse-driven UI pathfinder. Do not fake turns-to-reach. So the checks are per-destination-plot:
@@ -249,7 +251,7 @@ function H.move_refusal(u, dest, pid, fog_safe)
   -- One combat unit per tile: a move whose destination already holds one of our own combat units
   -- (e.g. "send the new bowman to Nanjing" while a warrior garrisons it) has no legal end plot and is
   -- dropped silently by the engine (live, turn 110). Refuse it up front.
-  if dest and u:IsCombatUnit() then
+  if dest and not transit and u:IsCombatUnit() then
     for i = 0, dest:GetNumUnits() - 1 do
       local o = dest:GetUnit(i)
       if o and o:GetOwner() == u:GetOwner() and o:GetID() ~= u:GetID() and o:IsCombatUnit()
@@ -263,7 +265,7 @@ function H.move_refusal(u, dest, pid, fog_safe)
   -- up front. A trade unit on its route passes through; every other civilian blocks, automated or not (live
   -- Assyria t135: a Great Prophet ordered onto the plot of an automated Worker was dropped by the engine with
   -- "no path", and the old exemption for any automated unit had let the order through). Name the unit.
-  if dest and dest.GetNumUnits and not u:IsCombatUnit() then
+  if dest and not transit and dest.GetNumUnits and not u:IsCombatUnit() then
     for i = 0, dest:GetNumUnits() - 1 do
       local o = dest:GetUnit(i)
       if o and o.IsCombatUnit and o:GetOwner() == u:GetOwner() and o:GetID() ~= u:GetID() and not o:IsCombatUnit()
@@ -328,7 +330,7 @@ function H.move_refusal(u, dest, pid, fog_safe)
     end
   end)
   if closed then return closed end
-  local occ = H.peaceful_occupant(dest, pid)
+  local occ = not transit and H.peaceful_occupant(dest, pid)
   if occ then return { ok = false, err = peaceful_occupant_err(occ) } end
   return nil
 end

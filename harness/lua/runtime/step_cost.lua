@@ -69,17 +69,16 @@ local function hostile_team(team, other)
   return yes(Teams[team], "IsAtWar", op:GetTeam())
 end
 
--- Every visible enemy whose zone of control reaches out of the plot the unit stands on: an enemy city or an enemy
--- combat unit next to it (CvUnitMovement::IsSlowedByZOC: an embarked enemy exerts none on a land unit; an enemy
--- ship's reaches a land unit only onto water). The plots next to the unit are in its sight.
-local function zoc_sources(u, pid, team)
+-- Every visible enemy whose zone of control reaches out of plot `from` (the one the unit stands on, or one its
+-- move passes through): an enemy city or an enemy combat unit next to it (CvUnitMovement::IsSlowedByZOC: an embarked
+-- enemy exerts none on a land unit; an enemy ship's reaches a land unit only onto water). Only plots in sight are
+-- read: next to the unit they all are, farther along a path a fogged one shows no enemy.
+local function zoc_sources(u, pid, team, from)
   local out = {}
-  if GameDefines and GameDefines.ZONE_OF_CONTROL_ENABLED == 0 then return out end
-  if ignores_zoc(u) then return out end
   local land, sea = DomainTypes and DomainTypes.DOMAIN_LAND or 0, DomainTypes and DomainTypes.DOMAIN_SEA or 1
   local dom = u:GetDomainType()
   for d = 0, 5 do
-    local p = Map.PlotDirection(u:GetX(), u:GetY(), d)
+    local p = Map.PlotDirection(from:GetX(), from:GetY(), d)
     if p and p:IsVisible(team, false) then
       local px, py = p:GetX(), p:GetY()
       local c = H.enemy_city_at(p, pid)
@@ -117,6 +116,9 @@ end
 -- Returns cost(q, city, crossing) for the unit's neighbours: { cost, left, zoc } in moves, or nil for a unit whose
 -- step has no cost to read (an air unit). `city`: a city stands on q (as the reply knows it); `crossing`: the step
 -- crosses a river edge. With no moves left the step is priced from next turn's full moves, as the engine does.
+-- A second value is the same rule for any step of a move: { have, denom, step(from, q, city, crossing, have_now) },
+-- `have` and `have_now` in 60ths, step returning the row and the 60ths left -- what the tactical view's `reach`
+-- walks plot by plot.
 local function step_costs(u, pid)
   local p = Players[pid]
   local team = p:GetTeam()
@@ -130,8 +132,21 @@ local function step_costs(u, pid)
   local base = math.max(1, math.floor(max / denom))
   local traits = trait_flags(p)
   local hills_extra = (GameDefines and GameDefines.HILLS_EXTRA_MOVEMENT) or 1
-  local here = plot_facts(u:GetPlot(), team, false)
-  local zoc = zoc_sources(u, pid, team)
+  local start = u:GetPlot()
+  local start_key = start:GetX() .. "," .. start:GetY()
+  local no_zoc = (GameDefines and GameDefines.ZONE_OF_CONTROL_ENABLED == 0) or ignores_zoc(u)
+  -- per plot a move leaves: its facts and the zones of control reaching out of it, read once
+  local from_cache = {}
+  local function leaving(plot)
+    local k = plot:GetX() .. "," .. plot:GetY()
+    local c = from_cache[k]
+    if not c then
+      c = { facts = plot_facts(plot, team, false), zoc = no_zoc and {} or zoc_sources(u, pid, team, plot),
+            start = (k == start_key) }
+      from_cache[k] = c
+    end
+    return c
+  end
   local unit = {
     ignore_terrain = yes(u, "IgnoreTerrainCost"), flat = yes(u, "FlatMovementCost"),
     discount = number(u, "GetExtraMoveDiscount"), hills_double = yes(u, "IsHillsDoubleMove"),
@@ -150,7 +165,7 @@ local function step_costs(u, pid)
   end
 
   -- CvUnitMovement::GetCostsForMove, in 60ths of a move.
-  local function terrain_cost(to)
+  local function terrain_cost(here, to)
     local regular
     if unit.ignore_terrain then regular = 1
     else
@@ -187,28 +202,33 @@ local function step_costs(u, pid)
     return math.max(1, best)
   end
 
-  return function(q, city, crossing)
+  local function step(from, q, city, crossing, have)
+    local l = leaving(from)
+    local here = l.facts
     local to = plot_facts(q, team, city)
     to.crossing = crossing and true or false
     local out = {}
-    for _, s in ipairs(zoc) do
+    for _, s in ipairs(l.zoc) do
       if Map.PlotDistance(s.x, s.y, q:GetX(), q:GetY()) == 1 and (not s.water_only or to.water) then
         out.zoc = { x = s.x, y = s.y, id = s.id, unit = s.unit, city = s.city, owner = s.owner }
         break
       end
     end
     local spent
-    local embarking = dom == land and (unit.embarked or here.water) ~= to.water
+    local embarking = dom == land and ((l.start and unit.embarked) or here.water) ~= to.water
     local bridged = bridges and usable_route(here) and usable_route(to)
     if out.zoc then spent = have
     elseif embarking and not to.water and traits.EmbarkedToLandFlatCost then spent = denom
     elseif embarking or (dom == land and to.crossing and not unit.no_river_penalty and not bridged) then spent = have
     elseif unit.flat then spent = denom
-    else spent = terrain_cost(to) end
+    else spent = terrain_cost(here, to) end
     spent = math.min(spent, have)
     out.cost, out.left = round2(spent / denom), round2((have - spent) / denom)
-    return out
+    return out, have - spent
   end
+
+  return function(q, city, crossing) return (step(start, q, city, crossing, have)) end,
+         { have = have, denom = denom, step = step }
 end
 
 -- Shared with later fragments, which import it at their top (load order: harness/runtime_source.py MANIFEST).

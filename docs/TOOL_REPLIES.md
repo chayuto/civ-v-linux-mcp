@@ -252,8 +252,16 @@ How to read the tactical view's `grid`, `move`, `vis`, `sight` and `fog`:
   An open step carries `cost` (moves it spends) and `left` (moves after it; with none left now, from next turn's
   full moves); `zoc` names the enemy unit or city whose zone of control ends the move there (leaving a plot next
   to an enemy for another plot next to it spends every move). A river crossed without a bridged road, embarking
-  and disembarking also spend every move. The cost follows the engine's rules on the plots as you see them; no
-  turns-to-reach are estimated beyond one step.
+  and disembarking also spend every move. The cost follows the engine's rules on the plots as you see them.
+- **reach**: every plot this turn's move can end on, the highlight a human sees on selecting the unit: `plots`
+  rows are `[x, y, moves left on arrival]`, nearest first; `moves` is what the walk started with (`next_turn`:
+  the unit has none now, so this is next turn's reach from here). It is the one-step cost walked outward: a plot
+  is passed when a move would not be refused there (terrain, a city at peace, closed borders, deep ocean without
+  the tech), your own and neutral units are passed through but not stopped on, a visible enemy's plot is an
+  attack (see `targets`), and a river, embarking or zone of control ends the move where it would on a neighbour.
+  Unrevealed plots are never entered; `fogged` lists the rows priced as last seen, where something unseen may
+  stop the unit short. `capped`: the walk stopped 6 plots out or at 90 rows. `none`: no plot. Absent for an air
+  or trade unit. It is this turn only: nothing says how many turns a farther plot takes.
 - **vis**: `visible` = in sight now; `fogged` = last seen, occupants unknown; `unrevealed` = never seen.
 - **sight**: `unit.sight` is what this unit itself sees (the engine's canSeePlot: high ground adds a plot, hills
   and forest in between block); `unit.fire_los` the same test with a ranged unit's attack range, which a ranged

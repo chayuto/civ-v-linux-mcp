@@ -167,8 +167,9 @@ than on scrolling. That is what keeps a turn affordable and the game moving whil
 - **`briefing` measured live.** Over four hotseat turns played both ways (`docs/NOTES.md`): 4.25 calls a turn
   against 8 with the separate reads, no refused order against two, about the same bytes.
 - **The tactical view never guesses.** Adjacency and map wrap come from the engine. One step's cost and the
-  zone of control that ends it follow the engine's movement rules on the plots as seen; no turns-to-reach,
-  which the engine cannot give safely. Nothing fogged is called safe.
+  zone of control that ends it follow the engine's movement rules on the plots as seen, and `reach` walks that
+  rule to every plot this turn's move can end on; no turns-to-reach beyond this turn, which the engine cannot
+  give safely. Nothing fogged is called safe.
 - **A compare keeps a tile's own gain apart from the empire's** (nothing until a city works it) and never
   calls a trade destination safe under fog.
 - **A trade unit's second gate.** Past the slot count the engine asks whether some city of yours can start a

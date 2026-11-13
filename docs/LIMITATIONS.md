@@ -31,6 +31,8 @@ engine, not inferred; the check is named. `docs/GAPS.md` keeps the full audit hi
   harness never invents turns-to-reach; the frontier read reports hex distance over the revealed map,
   the tactical view reports per neighbour what a move would be refused before sending and, for an open step,
   its cost and the zone of control that ends it (read off the engine's movement rules, not Plot:MovementCost),
+  with `reach` walking that one-step rule to every plot this turn's move can end on (runtime v337; fogged plots
+  priced as last seen and named, nothing beyond this turn),
   and the tile carries its yields, fresh water, routes and resource hover instead. Trade-route lines are a
   different thing and are readable: the trade-routes screen's `path` is the plot hover's route list on every
   revealed plot (runtime v212), with the caravan, its escort and enemies beside the line.

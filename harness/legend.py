@@ -17,6 +17,7 @@ TOPIC = 'state(what="unit", view="tactical")'
 #: #177; an open step's cost, GitLab #180).
 KEY = ("cell = ground+occupant: M mountain ~ water H hills F forest . open C city _ unrevealed | @ this unit X hostile "
        "u yours o other ? fogged; move: attack / open (cost, left, zoc) / refused (why) / enemy; "
+       "reach.plots: [x, y, left]; "
        f"the legend: reference(book='playbook', section='{TOPIC}')")
 
 
