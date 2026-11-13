@@ -10,3 +10,6 @@ harness/seats.json
 # uv temp lock files (uv-<hash>.lock); the real lockfile is uv.lock
 uv-*.lock
 harness/tunerd-seats.json
+# per-client tokens kept beside the repo (public repo: never commit)
+.*_pat
+tmp*/
