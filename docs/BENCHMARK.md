@@ -38,6 +38,40 @@ map or civilization. The proposal is to never compare them.
 What this does not solve: a rating is relative to the pool of boards and entrants, as any rating is. Whether a
 50-turn window predicts a 400-turn game is an empirical question the first data should be used to ask.
 
+## Goal boards (the user, 2026-11-13)
+
+A second kind of board, beside the open-play ones above: a save, a stated goal, a turn limit, and optionally a
+constraint. Examples: "your civilization is at war; retake city X within 15 turns"; "opponent X is Y turns from a
+science victory; stop them at any cost"; the same board again as "stop them and end with at least Z happiness".
+
+Why they earn their place:
+
+- **The scale is absolute.** Passed or not, in how many turns, by what margin on the constraint. Nothing needs
+  homologating, and a human can sit the same test.
+- **They are short**, so replicates are affordable and a pass *rate* is the natural score.
+- **They isolate a capability** (a campaign, a blockade, a diplomatic rescue, an economy under pressure) that
+  open play only ever shows mixed with everything else. The same board with and without its constraint measures
+  whether the agent can hold a second objective while pursuing the first.
+
+What a goal board must have, for the result to mean anything:
+
+1. **A referee, not a claim.** The goal and the constraint are predicates over game state (the owner of a plot,
+   a team's spaceship parts, a happiness number), read operator-side each turn. The agent's own report counts
+   for nothing.
+2. **A goal a human would be given.** The briefing states only what the seat's screens show at that turn (the
+   victory progress screen shows a rival's spaceship parts; it does not show their production queue). It is
+   handed over with the prompt, outside the game, the same words to every entrant.
+3. **Proof it can be done, and that it is not free.** One recorded solution (a human's or an agent's) shows it
+   is solvable. The stock AI on the seat, which knows no goal, gives the rate at which it happens anyway. A
+   board where the AI passes most runs, or nobody ever does, is dropped.
+4. **An honest origin.** A board cut from a game that was really played is marked so; one staged by Lua (units
+   placed, a war declared) is marked so too, since staged positions can be ones no game would reach.
+5. **No reward for wrecking the game**, unless the goal says "at any cost". The referee records what the pass
+   cost (cities, units, gold, happiness, standing) beside it, so two passes can still be told apart.
+
+Goal boards and open-play boards answer different questions and are reported apart: a pass rate per board and
+per capability here, a rating there.
+
 ## What can be measured with no scale at all
 
 From the call ledger and the usage rows, per turn and per game, comparable anywhere:
