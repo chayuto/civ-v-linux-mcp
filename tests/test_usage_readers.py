@@ -79,7 +79,10 @@ class FixtureHoldsNoTextTests(unittest.TestCase):
         "name", "input", "modelUsage", "payload", "cli_version", "originator", "session_id", "response_id",
         "thread_token_usage", "item", "server", "tool", "arguments", "status", "thread_id", "toolName", "rawInput",
         "tool_name", "tool_input", "output_tokens_details", *rows.ACTION_ARGS,
-        *CUT.CLAUDE_USAGE, *CUT.CLAUDE_TOTAL, *CUT.CODEX_USAGE, *CUT.GROK_USAGE, *CUT.GROK_TOTAL, "thinking_tokens"}
+        *CUT.CLAUDE_USAGE, *CUT.CLAUDE_TOTAL, *CUT.CODEX_USAGE, *CUT.GROK_USAGE, *CUT.GROK_TOTAL, "thinking_tokens",
+        "duration", "secs", "nanos",                                             # when a Codex call started
+        *CUT.LOOP_NUMBERS, *CUT.LOOP_WORDS, "session",                           # the seat loop's two rows
+        *CUT.LEDGER_NUMBERS, *CUT.LEDGER_WORDS, *CUT.LEDGER_FLAGS}               # a call ledger row, cut
     MODEL = re.compile(r"[a-z0-9.-]{3,40}\Z")
 
     def walk(self, o, path, under_model_usage=False):
@@ -99,12 +102,27 @@ class FixtureHoldsNoTextTests(unittest.TestCase):
             self.assertTrue(o is None or isinstance(o, (int, float)), path)
 
     def test_every_key_is_listed_and_every_string_is_one_word(self):
-        files = sorted(FIXTURES.glob("*.jsonl"))
-        self.assertEqual([f.name for f in files], ["claude-code-transcript.jsonl", "codex-exec.jsonl",
-                                                   "codex-rollout.jsonl", "grok-stream.jsonl"])
+        files = sorted(FIXTURES.rglob("*.jsonl"))
+        self.assertEqual([str(f.relative_to(FIXTURES)) for f in files], [
+            "claude-code-transcript.jsonl", "codex-exec.jsonl", "codex-rollout.jsonl",
+            "cycles/calls.jsonl", "cycles/claude-c1.jsonl", "cycles/claude-c1.transcript.jsonl", "cycles/codex-c1.jsonl",
+            "cycles/codex-c1.rollout.jsonl", "cycles/grok-c1.jsonl", "grok-stream.jsonl",
+            "session/calls.jsonl", "session/codex-rollout.jsonl"])
+        self.assertEqual([f.name for f in FIXTURES.rglob("*") if f.is_file() and f.suffix != ".jsonl"], ["README.md"])
         for f in files:
             for n, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
                 self.walk(json.loads(line), f"{f.name}:{n}")
+
+    def test_a_ledger_row_is_cut_down_to_its_label_and_numbers(self):
+        raw = [J({"t": 1794632371.5, "seat": 0, "tool": "order", "action": "civ/propose_deal", "kind": "write", "bytes": 135,
+                  "seconds": 3.342, "trips": 9, "ok": False, "client": "codex/gpt-6.1-sol", "turn": 243,
+                  "turn_inferred": True, "err": "Rome will not take that", "excerpt": "{\"ok\":false}",
+                  "args": "{\"gold\":200}", "scope": "act", "refs": [1, 2]})]
+        out = CUT.cut("ledger", raw)
+        self.assertEqual(json.loads(out[0]), {
+            "t": 1794632371.5, "seat": 0, "bytes": 135, "seconds": 3.342, "trips": 9, "turn": 243, "tool": "order",
+            "action": "civ/propose_deal", "kind": "write", "client": "codex/gpt-6.1-sol", "ok": False,
+            "turn_inferred": True})
 
     def test_the_cut_leaves_the_words_behind(self):
         secret = "the plan is to take Rome by sea"
@@ -193,6 +211,41 @@ class CodexTests(unittest.TestCase):
                          [("resp_1", "gpt-6.1-sol", "codex/0.166.0"), ("resp_2", "gpt-6.1-luna", "codex/0.166.0")])
         self.assertEqual(got[0]["calls"], [{"tool": "state", "action": "units"}])
         self.assertEqual(got[1]["calls"], [{"tool": "turn", "action": "finish"}, {"tool": "turn", "action": "status"}])
+
+    def script(self, ts):
+        return J({"timestamp": ts, "type": "response_item", "payload": {"type": "custom_tool_call", "name": "exec",
+                                                                        "input": "await tools.civ5.state()"}})
+
+    def timed(self, tool, ts, secs=0.0, **arguments):
+        return J({"timestamp": ts, "type": "event_msg", "payload": {"type": "item_completed", "item": {
+            "type": "McpToolCall", "server": "civ5", "tool": tool, "arguments": arguments,
+            "duration": {"secs": int(secs), "nanos": int(secs % 1 * 1e9)}}}})
+
+    def test_a_call_that_ran_before_its_responses_record_was_written_is_still_that_responses(self):
+        # live 2026-11-13: the script row at .66, its first call done at .76, the response's record at .81
+        got = codex.read([self.record("resp_1", 10, 0, ts="2026-11-13T23:52:20.710Z"),
+                          self.script("2026-11-13T23:52:21.660Z"),
+                          self.timed("state", "2026-11-13T23:52:21.760Z", 0.09, what="unit", view="tactical"),
+                          self.record("resp_2", 20, 0, ts="2026-11-13T23:52:21.810Z"),
+                          self.timed("state", "2026-11-13T23:52:21.880Z", 0.06, what="map", view="window")])
+        self.assertEqual([r["calls"] for r in got], [[], [{"tool": "state", "action": "unit/tactical"},
+                                                          {"tool": "state", "action": "map/window"}]])
+
+    def test_a_call_that_outlasts_its_response_stays_with_the_script_that_made_it(self):
+        # resp_1's script ends the turn; the model polls (a `wait`, no script) and then writes another script
+        # while the long call is still out: it started before that script was written, so it is resp_1's
+        got = codex.read([self.script("2026-11-13T23:00:00.000Z"), self.record("resp_1", 10, 0, ts="2026-11-13T23:00:00.100Z"),
+                          self.record("resp_2", 10, 0, ts="2026-11-13T23:00:30.000Z"),
+                          self.script("2026-11-13T23:00:40.000Z"),
+                          self.timed("turn", "2026-11-13T23:00:41.000Z", 40.8, action="finish"),
+                          self.record("resp_3", 10, 0, ts="2026-11-13T23:00:41.100Z"),
+                          self.timed("state", "2026-11-13T23:00:41.500Z", 0.2, what="units")])
+        self.assertEqual([[c["action"] for c in r["calls"]] for r in got], [["finish"], [], ["units"]])
+
+    def test_a_script_whose_response_never_got_a_record_gives_its_calls_to_no_row(self):
+        got = codex.read([self.record("resp_1", 10, 0, ts="2026-11-13T23:00:00.000Z"), self.script("2026-11-13T23:00:05.000Z"),
+                          self.timed("state", "2026-11-13T23:00:05.300Z", 0.1, what="units")])     # killed here
+        self.assertEqual(got[0]["calls"], [])
 
     def test_totals_of_a_file_that_has_none(self):
         self.assertIsNone(codex.thread_total(['{"type": "session_meta", "payload": {}}']))

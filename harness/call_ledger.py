@@ -129,6 +129,35 @@ def row(tool: str, seat: Any, text: str, seconds: float, trips: int | None, now:
     return r
 
 
+def turn_groups(rows: list[dict]) -> list[dict]:
+    """Rows (one seat's, in file order) split into turns: `[{"turn", "rows", "open"}]`. A turn is every call up to
+    and including the wait that ends it; a refused end of turn leaves it open, and waits straight after the one
+    that succeeded (`finish`, then `wait`) belong to the same turn. The turn number is the first one a non-wait
+    answer named, else the one the previous turn's wait returned. Only the last group can be `open` (no wait has
+    closed it yet). `scripts/ledger_report.py` and the usage join (`harness/usage/join.py`) both group by this."""
+    groups: list[list[dict]] = []
+    cur: list[dict] = []
+    closed = False
+    for r in rows:
+        if closed and r["kind"] != "wait":
+            groups.append(cur)
+            cur, closed = [], False
+        cur.append(r)
+        if r["kind"] == "wait" and r["ok"]:
+            closed = True
+    if cur:
+        groups.append(cur)
+    out, last_turn = [], None
+    for g in groups:
+        turn = next((r["turn"] for r in g if r["kind"] != "wait" and isinstance(r.get("turn"), int)), last_turn)
+        last_turn = next((r["turn"] for r in reversed(g) if r["kind"] == "wait" and isinstance(r.get("turn"), int)),
+                         last_turn)
+        out.append({"turn": turn, "rows": g, "open": False})
+    if out and not closed:
+        out[-1]["open"] = True
+    return out
+
+
 def append(p: str, r: dict) -> None:
     """Best effort: a ledger that cannot be written never breaks the call it describes."""
     try:

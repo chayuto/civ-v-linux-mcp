@@ -1,4 +1,11 @@
-# Resume here -- 2026-11-14 (small hours): main = 2.14.4 + token accounting stages 0 and 1 (unreleased; runtime v339, 9 tools, 2158 tests).
+# Resume here -- 2026-11-14 (small hours): main = 2.14.4 + token accounting stages 0 to 3 (unreleased; runtime v339, 9 tools, 2191 tests).
+**#185 and #186 are done too.** The seat loop stamps its stream, frames each cycle, keeps the client's per-request
+record and runs `--agent claude`; `harness/usage/join.py` places every request in a game turn (`place`, `per_turn`,
+`place_cycle`; `fixed` before a session's first call, `unplaced` when the ledger does not cover it), grouped by
+`call_ledger.turn_groups`, which the ledger report now shares. The join found and fixed a race in the Codex reader
+(a script's first calls are on file before its response's record). **Next: #187** (the report:
+`scripts/ledger_report.py --usage`, `harness/usage/prices.json`), then the user starts the agents for #188.
+What was written before stage 2:
 **#183 and #184 are done** (milestone 2.15.0, `docs/TOKEN_ACCOUNTING.md`): `harness/usage/` (`rows`, `claude_code`,
 `codex`, `grok`: one row per model request, each client's own total beside its reader), `scripts/cut_usage_fixture.py`
 and four fixtures under `tests/fixtures/usage/` cut from real files down to numbers. Operator-side only; the server

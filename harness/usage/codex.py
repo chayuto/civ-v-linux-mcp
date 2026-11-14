@@ -6,10 +6,14 @@ The rollout has one `token_usage_record` per response, with a time. Its `input_t
 0 in every record seen; it is taken to be inside `input_tokens` as the cached part is. `reasoning_output_tokens`
 is inside `output_tokens`. The model is on the `turn_context` row before the records it governs.
 
-A civ5 call is an `item_completed` event whose item is a `McpToolCall`. Codex makes its calls from scripts (the
-`exec` tool), so the event comes after the usage record of the response that wrote the script, and that is the
-request the call is given to. A call that outlasts the response (a long wait the model then polls) still belongs
-to the response that issued it. Read off Codex CLI 0.166.0 (2026-11-13).
+A civ5 call is an `item_completed` event whose item is a `McpToolCall`. Codex makes its calls from scripts: a
+response ends in a `custom_tool_call` item (the `exec` tool), the script starts at once, and the response's usage
+record is written a moment later, so a script's first calls can be on file *before* the record of the response
+that wrote it (live 2026-11-13: 3 of 23 calls). A call is therefore given to the script that was the latest one
+written when the call **started** (the event's time less the item's `duration`), and a script to the first record
+after it. A call that outlasts its response (a long wait the model then polls with `wait`, which is a
+`function_call` and issues nothing) still belongs to the response that issued it. In a file with no script row
+or no times, a call goes to the record before it. Read off Codex CLI 0.166.0 (2026-11-13).
 
 The client's own totals: `thread_total` (the rollout's running total, on its last record) and `exec_total` (the
 `turn.completed` rows of the exec stream, which carries no per-request row at all).
@@ -31,10 +35,21 @@ def counts(u: Any) -> dict[str, int]:
             "reasoning": u.get("reasoning_output_tokens") or 0}
 
 
+SCRIPT = "custom_tool_call"       # the response item that runs a script; its calls start after it
+EARLY = 0.05                      # seconds a call's computed start may fall before its script's row
+
+
+def _seconds(d: Any) -> float:
+    if isinstance(d, dict):
+        return (d.get("secs") or 0) + (d.get("nanos") or 0) / 1e9
+    return 0.0
+
+
 def read(lines: Iterable[str], server: str = "civ5") -> list[dict]:
     """One row per response, in file order. A response id seen twice is counted once."""
     out: list[dict] = []
-    seen: set = set()
+    by_id: dict = {}
+    scripts: list[dict] = []          # {"t": when the script's row was written, "row": its response's row, "calls": [...]}
     model = session = version = None
     for o in rows.parsed(lines):
         kind, p = o.get("type"), o.get("payload")
@@ -44,19 +59,40 @@ def read(lines: Iterable[str], server: str = "civ5") -> list[dict]:
             session, version = p.get("id") or p.get("session_id"), p.get("cli_version")
         elif kind == "turn_context":
             model = p.get("model") or model
+        elif kind == "response_item" and p.get("type") == SCRIPT:
+            t = rows.epoch(o.get("timestamp"))
+            if t is not None:
+                scripts.append({"t": t, "row": None, "calls": []})
         elif kind == "token_usage_record":
             rid = p.get("response_id")
-            if rid is not None and rid in seen:
-                continue
-            seen.add(rid)
-            out.append(rows.row(t=rows.epoch(o.get("timestamp")), client=f"codex/{version}" if version else "codex",
-                                model=model, session=p.get("session_id") or session, request=rid,
-                                counts=counts(p.get("usage")), source=SOURCE))
-        elif kind == "event_msg" and p.get("type") == "item_completed" and out:
+            r = by_id.get(rid) if rid is not None else None
+            if r is None:
+                r = rows.row(t=rows.epoch(o.get("timestamp")), client=f"codex/{version}" if version else "codex",
+                             model=model, session=p.get("session_id") or session, request=rid,
+                             counts=counts(p.get("usage")), source=SOURCE)
+                out.append(r)
+                if rid is not None:
+                    by_id[rid] = r
+            for s in scripts:
+                if s["row"] is None:                       # written since the record before: this response's script
+                    s["row"] = r
+                    r["calls"].extend(s.pop("calls"))
+        elif kind == "event_msg" and p.get("type") == "item_completed":
             item = p.get("item")
-            if isinstance(item, dict) and item.get("type") == "McpToolCall" and item.get("server") == server \
-                    and isinstance(item.get("tool"), str):
-                out[-1]["calls"].append(rows.call(item["tool"], item.get("arguments")))
+            if not (isinstance(item, dict) and item.get("type") == "McpToolCall" and item.get("server") == server
+                    and isinstance(item.get("tool"), str)):
+                continue
+            done = rows.epoch(o.get("timestamp"))
+            started = None if done is None else done - _seconds(item.get("duration"))
+            owner = None if started is None else next((s for s in reversed(scripts) if s["t"] <= started + EARLY), None)
+            call = rows.call(item["tool"], item.get("arguments"))
+            if owner is None:
+                if out:
+                    out[-1]["calls"].append(call)
+            elif owner["row"] is None:
+                owner["calls"].append(call)
+            else:
+                owner["row"]["calls"].append(call)
     return out
 
 

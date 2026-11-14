@@ -43,6 +43,25 @@ Dates are the day the change was committed; "live tNNN" is the game turn it was 
   Live t242, one cycle of each agent: 9, 11 and 9 requests, each equal to the client's own total, and as many civ5
   calls on the rows as ledger rows under the cycle's label. Grok starts a seat folder's `.mcp.json` only in a
   folder it trusts. 2170 tests.
+- **Token accounting, stage 3: the join (#186).** `harness/usage/join.py` says which game turn a model request
+  belongs to. `place(usage, ledger)` matches every civ5 call of a usage row to a call ledger row of the same client
+  -- same `(tool, action)`, in order, begun after the request was complete and (outside Codex, whose scripts
+  outlive their response) before the next one was; a ledger row written in an older vocabulary (`inspect`,
+  `finish_turn`) is read as the call it means now -- and gives the request one place: the turn of the first call it
+  issued, else the turn of the last call before it, else `fixed` (what a session costs before its first call: the
+  system prompt, the tool listing). A session the ledger does not cover is `unplaced`, never silently `fixed`.
+  `per_turn` sums the placed rows, and the sums are the session's total; `place_cycle` joins one seat-loop cycle by
+  its header's label and times; `ledger_of` picks a client's rows in a window. Turns are grouped by
+  `call_ledger.turn_groups`, the grouping `scripts/ledger_report.py` had and now shares.
+  **Fixed in the Codex reader:** a script starts before its response's usage record is written, so its first calls
+  sat on file ahead of that record and were given to the response before (3 of 23 calls in the live cycle of
+  2026-11-13). A call now belongs to the latest script written when the call started (the event's time less its
+  `duration`); 647 rows of this machine's 48 rollouts change their calls, no total changes.
+  `scripts/cut_usage_fixture.py` also cuts a seat-loop stream with the loop's two rows, a `claude -p` stream and a
+  call ledger (`ledger --client --since --until`: time, seat, label, kind, sizes, `ok`, turn, nothing else). New
+  fixtures: the three live cycles of stage 2 with their 41 ledger rows, and a Codex session of eleven turns with its
+  69. Read-only against this machine's files: 1,671 of 1,671 Claude Code calls and 1,021 of 1,022 Codex calls find
+  their ledger row, and every session's per-turn sums equal its total. 2191 tests.
 
 ## 2.14.4 -- The playbook ships in the package (2026-11-13)
 

@@ -17,6 +17,11 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from harness import call_ledger
 
 
 def load(path: str, seat: int | None, client: str | None = None) -> list[dict]:
@@ -53,25 +58,14 @@ def clients(rows: list[dict]) -> list[dict]:
 
 
 def turns(rows: list[dict]) -> list[dict]:
-    """Split rows into turns at each wait that succeeded (a refused end_turn leaves the turn open); waits
-    straight after it (end_turn, then wait_for_my_turn) belong to the same turn. The turn number is the first
-    one a non-wait answer named, else the one the previous wait returned."""
-    groups, cur, closed = [], [], False
-    for r in rows:
-        if closed and r["kind"] != "wait":
-            groups.append(cur)
-            cur, closed = [], False
-        cur.append(r)
-        if r["kind"] == "wait" and r["ok"]:
-            closed = True
-    out, last_turn = [], None
-    for g in groups + ([cur] if cur else []):
-        t = summarize(g, last_turn)
-        last_turn = next((r["turn"] for r in reversed(g) if r["kind"] == "wait" and isinstance(r.get("turn"), int)),
-                         last_turn)
+    """One summary per turn, the rows grouped by `call_ledger.turn_groups` (a turn is closed by a wait that
+    succeeded; the turn number is the first one a non-wait answer named, else the one the previous wait returned)."""
+    out = []
+    for g in call_ledger.turn_groups(rows):
+        t = summarize(g["rows"], g["turn"])
+        if g["open"]:
+            t["open"] = True
         out.append(t)
-    if cur and not closed:
-        out[-1]["open"] = True
     return out
 
 
