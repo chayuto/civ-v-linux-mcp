@@ -1,4 +1,17 @@
-# Resume here -- 2026-11-14 (afternoon): main = 2.15.0 (runtime v339 unchanged, 9 tools, 2227 tests; tagged, released, on PyPI).
+# Resume here -- 2026-11-14 (late afternoon): main = 2.15.0 + two cuts of the finish reply (unreleased; runtime v341, 9 tools, 2234 tests).
+**#191, two cuts, both read back on three clients** (CHANGELOG Unreleased; `docs/NOTES.md`, "The finish reply after
+two cuts"). v340: `todo.ongoing_note` once, the expiring-deal hint on the first row, digest rows without `audience`
+/ `ntype` / `d1` / `d2`. v341: a finish or wait reply leaves out the status flags that are false
+(`mcp_tools/turn.py` `_lean`, `QUIET_FLAGS`), quiet automated units are `todo.automated` {type: [ids]}, a refused
+end's `todo` is the pointer "status.todo". The reply is 8 to 23% smaller in bytes; a session total did not move
+beyond run-to-run variance. Runs: `logs/bench191/v340|v341/<agent>-t10/` (the runner is the bench188 recipe: reload,
+notebook back, 200 s, one cycle of 10). **#191 stays open** for what is left: the leader's `relationship` block on
+a deal screen (8% of a finish reply; Claude and Grok answer from it without `question()`), `state` `league` (a
+reply that lists what changed), and the digest's events (15%). The game is on the t242 board again, notebook as it
+was; this session's own Claude Code civ5 server still holds the v339 source, so restart the session before
+calling civ5 tools from it (two runtimes re-inject each other).
+
+# Previous -- 2026-11-14 (afternoon): main = 2.15.0 (runtime v339 unchanged, 9 tools, 2227 tests; tagged, released, on PyPI).
 **2.15.0 is out: token accounting, operator-side** (#190 closed, milestone 23 closed). The words: a README bullet,
 an honest limit and a documentation row; `docs/ARCHITECTURE.md` "Token accounting" (where the rows come from);
 `docs/AGENT_INSTALL.md` section 11 (where each client keeps its usage, how to point the report at it);

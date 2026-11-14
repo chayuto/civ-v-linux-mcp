@@ -33,6 +33,10 @@ Dates are the day the change was committed; "live tNNN" is the game turn it was 
   an id under its type in `todo.automated` and not a row (a held or dropped move makes it a row again);
   `end_turn.todo` is the pointer "status.todo" when the status is in the same reply; `expiring_friendships` has
   its hint in full on the first row only.
+  Read back on a second round of three runs (v341): the reply is 4,923 bytes against 6,171 for Claude Code, 5,277
+  against 6,887 for Codex, 5,792 against 6,316 for Grok, and 2,127 tokens against 2,753 for Claude Code; no client
+  made an extra call for what is no longer there. A session's total did not move beyond what one game differs from
+  the next (`docs/NOTES.md`, "The finish reply after two cuts"). 2234 tests.
 
 ## 2.15.0 -- What a turn costs the model (2026-11-14)
 

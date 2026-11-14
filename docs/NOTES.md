@@ -3660,3 +3660,33 @@ What the replies brought (the context's growth after a request, less its own out
 Found on the way: the ledger's turn groups close at a `turn` `finish` that hands back a leader's screen, so one game
 turn was several groups (44 for 20 turns); `measure.turns` joins groups in a row with one turn number. The ledger
 report's own table still prints them apart.
+
+### The finish reply after two cuts (#191, 2026-11-14 afternoon)
+
+The same shape as the stage 5 runs (each client alone on the Maya t242 board, one cycle of 10 turns, effort low),
+once on runtime v340 and once on v341; v339 is the first cycle of stage 5's 10-turn runs. One run per cell, so a
+difference of a tenth is inside what a different game does. Logs: `logs/bench191/<runtime>/<agent>-t10/`.
+
+Per reply to `turn` `finish`:
+
+| client | v339 bytes | v340 | v341 | v339 tokens | v340 | v341 |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Claude Code, sonnet | 6,171 | 5,177 | 4,923 | 2,753 | 2,342 | 2,127 |
+| Codex, gpt-6.1-sol | 6,887 | 6,332 | 5,277 | 1,515 | 1,296 | 1,576 |
+| Grok, grok-4.6 | 6,316 | 6,400 | 5,792 | 1,961 | 1,993 | 1,786 |
+
+The bytes are the ledger's and fall for every client: 20% for Claude Code, 23% for Codex, 8% for Grok. The tokens
+are the subtraction of stage 5; for Claude Code they follow the bytes (23% down), for Grok half as far, and for
+Codex they are noise at this size (its scripts print what they choose of a reply). v340 took the repeats out (the
+note on every automated unit, the hint on every expiring deal, the event fields no seat can use); v341 the status
+flags that are false, the rows of automated units with nothing to look at, and a refused end's second `todo`.
+
+What did not move is the whole session: 2.4 to 2.8 M tokens read for Claude Code, 2.9 to 4.1 M for Codex, 5.8 to
+6.5 M for Grok across the three runtimes, in no order. A session's reading is its requests times its context, and
+the number of requests a client makes for ten turns (36 to 48, 38 to 49, 64 to 67) varies by more than a fifth of
+one reply saves. The saving is real per call and shows in the context's peak for Claude Code (123 k, 111 k, 107 k);
+proving it on a session total would take several runs a cell.
+
+No client stumbled on the new shape: none read `turn` `status` after a finish to find a flag, none read the
+automated units one by one, and the calls per label are what they were.
+
