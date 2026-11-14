@@ -5,7 +5,7 @@ Sid Meier's Civilization V against them or against the game's AI. This file is t
 through it top to bottom, verify each step's check before moving on, and report back in the words of the
 final section. Where a step needs the human (a Steam setting, a download), say exactly what to click and wait.
 
-Everything here was written from the repository as of package 2.14.4 (Lua runtime v339). When a command
+Everything here was written from the repository as of package 2.15.0 (Lua runtime v339). When a command
 below disagrees with the code in front of you, the code wins; say so in your report.
 
 ## 1. What you are installing
@@ -333,6 +333,30 @@ What the pieces do is a separate document: `reference(section)` (also the MCP re
 DLC are in it. Hand it to the model at the start of a game, whole or section by section; no tool answer
 repeats that text, and a model that has not read it is choosing promotions and beliefs by name alone. The
 whole book is also written to `$XDG_DATA_HOME/civ5-harness/reference/<game>.md` the first time it is read.
+
+**What the game cost the model (optional, the human's side).** The server cannot count tokens; each client
+writes its own usage, and a report joins it to the call ledger. Two things make that possible: start the server
+with `CIV5_CALL_LOG=<path>/calls.jsonl` in its environment (and `CIV5_CLIENT=<name>/<model>` when two models
+share a seat), and know where the client keeps its record:
+
+| Client | Its usage record | Point the report at |
+|---|---|---|
+| Claude Code | the session transcript, `~/.claude/projects/<project slug>/<session id>.jsonl` | that file, or the project's directory |
+| Codex | the rollout, `~/.codex/sessions/<year>/<month>/<day>/rollout-*.jsonl` | `~/.codex/sessions` |
+| Grok | nothing on disk per request; only its `--output-format streaming-json` stream carries usage | the log directory of `scripts/llm_seat_loop.py`, which keeps the stream |
+| any of the three under `scripts/llm_seat_loop.py` | the loop's log directory: the stamped stream and a copy of the client's record per cycle | that directory |
+
+```bash
+.venv/bin/python scripts/ledger_report.py logs/calls.jsonl --usage ~/.codex/sessions --usage logs/night
+.venv/bin/python scripts/usage_measure.py logs/calls.jsonl --usage logs/night --out docs/measurements
+```
+
+`--usage` repeats and takes a file or a directory; a session with no civ5 call is left out. The first prints
+tokens and a list-price estimate per game turn, the second what grows over a session of ten turns or more.
+This is for the human who runs the game: do not read the result back to a playing seat, and never paste a
+transcript anywhere (the readers take numbers, ids, tool names and times out of it and nothing else). A model
+missing from `harness/usage/prices.json` prints tokens without dollars; add its row with the date and the page
+the price came from. `docs/TOKEN_ACCOUNTING.md` has the rest.
 
 ## 12. Troubleshooting
 

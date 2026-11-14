@@ -116,6 +116,31 @@ Game.turn_status: todo (units, cities, promotions, research, pending chooser; on
 end_turn:         Game.DoControl(CONTROL_ENDTURN) after sweeping announcement popups; quick-saves first
 ```
 
+## Token accounting (operator-side, since 2.15.0)
+The server never sees a token count: the provider reports usage to the client, and the client writes it to its
+own files. `harness/usage/` joins those files to the call ledger after the fact. Nothing in it is imported by
+the server, and no reply, refusal or notebook entry carries a count (a seat that knew its budget would play
+differently; `docs/TOKEN_ACCOUNTING.md` has the rules).
+
+Where the rows come from:
+
+| Source | Reader | One row per model request from |
+|---|---|---|
+| Claude Code | `usage/claude_code.py` | the session transcript, `~/.claude/projects/<slug>/<session>.jsonl`: `message.usage` on the assistant rows, each `requestId` counted once |
+| Codex | `usage/codex.py` | the rollout, `~/.codex/sessions/**/rollout-*.jsonl`: `token_usage_record` rows, the cached part taken out of `input_tokens` |
+| Grok | `usage/grok.py` | the seat loop's stream: the `usage` events between the tool calls; the seat loop stamps each line's arrival time, the stream itself has none |
+| a seat-loop cycle | `usage/cycle.py` | the cycle's log: a `seat_loop.cycle` header (agent, model, seat, turns, the ledger's client label), the stamped stream, and the client's own per-request record copied beside it |
+
+Every reader returns the same row (`usage/rows.py`: `new_in`, `cache_read`, `cache_write`, `out`, `reasoning`,
+the time, the civ5 calls the request issued) and the client's own total beside it. `usage/join.py` matches each
+call to its ledger row and places the request in a game turn (the turn of its first call, else of the call
+before it, else `fixed`: the system prompt and tool listing read before any call; `unplaced` when the ledger
+does not cover the session). `usage/report.py` sums per turn for `scripts/ledger_report.py --usage`,
+`usage/prices.py` prices a row from `prices.json` (list prices with a date and a page per model),
+`usage/measure.py` is the subtraction behind `scripts/usage_measure.py` (context per turn position, what each
+`(tool, action)` reply brought, one long session against two short ones). The test of every stage is one
+equality: the per-turn sums of a session equal the client's own total.
+
 ## Tests
 `scripts/check.sh` (1063, no game) runs the suite after checking that liblua5.4, lupa and luac are installed:
 without them the 50 Lua test files would skip and a green run would say nothing about the runtime. The shipped
@@ -141,11 +166,14 @@ harness/     tuner.py (protocol), tunerd.py (daemon), client.py, game.py (+ game
              mcp_tools/surface.py (the nine tools of 2.0.0, the listing; the 145 old handlers are registered and retired at once with `@retired`),
              guide.py (the playbook by topic), supervisor.py (crash/restart),
              action_lock.py, turn_claim.py, runtime_source.py (runtime manifest, digest, installer),
+             call_ledger.py (one row per tool call, the turn groups), usage/ (token accounting, operator-side: one reader per client,
+             the join to the ledger, the report, the price table, the measurements; the server imports none of it),
              lua/runtime/*.lua (the injected runtime, one file per domain), lua/audit.lua, lua/generic_popup_shim.lua
 shim/        tuner_recv_fix.c -> libtuner_recv_fix.so (gcc -m32)
 scripts/     launch_civ5.sh, launch_llm_client.sh, launch_seat.sh, llm_seat_loop.py (an LLM CLI on a seat, turn after turn),
              mcp_call.py (one tool call, fresh server), mcp_session.py (drive a seat), hotseat_rounds.py (advance both
              seats until a decision), scripts/finish_turn.py, play_loop.py (the heuristic player), ledger_report.py,
+             usage_measure.py (what grows over a session), cut_usage_fixture.py (a client's usage file cut down to numbers),
              measure_reads.py, spectator_demo.py / synth_recording.py (recordings for the page with no game), watch_game.py,
              event_audit.py / tuner_probe.py / mem_watch.sh (debug), check.sh
 saves/       the reproduction states S1-S3 (README lists what each shows)

@@ -32,7 +32,7 @@ the table and sees no more than you would.
 
 | Requirements | Current release | Ways to play |
 | --- | --- | --- |
-| Native Linux Steam build, Brave New World | **2.14.4** · Lua runtime **v339** | Solo · hotseat · LAN · multi-LLM |
+| Native Linux Steam build, Brave New World | **2.15.0** · Lua runtime **v339** | Solo · hotseat · LAN · multi-LLM |
 
 ## On this page
 
@@ -167,6 +167,15 @@ than on scrolling. That is what keeps a turn affordable and the game moving whil
   seat's screen shows: never-seen plots black, fogged plots dimmed, other players' units only where visible.
   Read-only, records and replays with a scrubber (play/pause, speed, a slider whose ticks are the turn
   boundaries), and reads the game only when the world moves (`docs/VISUALIZATION.md`).
+- **You can see what a turn cost the model.** An MCP server never sees a token count; the client does, and
+  writes it to its own files. `scripts/ledger_report.py logs/calls.jsonl --usage <the client's records>` joins
+  those records (a Claude Code transcript, a Codex rollout, the seat loop's Grok stream) to the call ledger and
+  prints, per game turn, the requests, the new and the cached input, the output, the thinking and a list-price
+  estimate; every session's per-turn sums equal the client's own total. `scripts/usage_measure.py` says what
+  grows: on a late-game board a late turn of a 20-turn session reads three times an early one, two sessions of
+  10 turns read 0.62 to 0.88 of one of 20, and the reply that ends a turn is 21 to 55% of what the replies add
+  to the context (`docs/measurements/2026-11-14-what-grows/`). Operator's side only: no seat ever reads a count
+  (`docs/TOKEN_ACCOUNTING.md`).
 
 <details>
 <summary>The fine print: measurements and edge cases</summary>
@@ -290,6 +299,10 @@ the long version.
   nine tools makes the agent stop and ask you. `docs/GAPS.md` is the running audit.
 - The engine's movement-cost preview and path overlays crash the game when read, so one step's cost is computed
   from the engine's movement rules instead, and nothing beyond one step (turns to reach) is estimated.
+- Token counts are the client's own, read from the files it writes; a client that writes none gets none, and
+  nothing is counted with a tokenizer. The dollar column is a list-price estimate from a dated table
+  (`harness/usage/prices.json`), not what a subscription was charged; a model the table does not list prints
+  tokens and no dollars.
 - No hosted CI by choice; the suite runs locally before every push.
 
 ## Documentation
@@ -300,6 +313,8 @@ the long version.
   long replies) served the same way.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): layers, information boundary, game modes, repo layout.
 - [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md): what the harness will not do, each item checked against the engine.
+- [`docs/TOKEN_ACCOUNTING.md`](docs/TOKEN_ACCOUNTING.md): what a turn costs the model, where each client keeps its
+  usage records, the rules (operator's side only, numbers and never text) and the stages.
 - [`docs/GAPS.md`](docs/GAPS.md), [`docs/ROADMAP.md`](docs/ROADMAP.md), [`CHANGELOG.md`](CHANGELOG.md): live audit, plan, and the map from package versions to runtime versions.
 - The tool-surface plan, nine tools (`turn`, `state`, `order`, `question`, `answer`, `notebook`, `batch`, `session`, `reference`) in place of the 145 by modelling the game's objects and their legal actions instead of its buttons, lives on GitLab: [milestone 2.0.0](https://gitlab.com/Tyler-Meador/civ-v-linux-mcp/-/milestones/11) and [tracking issue #59](https://gitlab.com/Tyler-Meador/civ-v-linux-mcp/-/issues/59).
 - [`docs/DECK_HOWTO.md`](docs/DECK_HOWTO.md): running a seat on a Steam Deck.
@@ -313,14 +328,15 @@ the long version.
 ```bash
 sudo apt install lua5.4 liblua5.4-0   # luac for the runtime lint, liblua for the Lua tests
 uv sync --group dev
-scripts/check.sh            # 2141 tests: the shipped Lua under lupa, the Python layer against fake bridges; no game needed
+scripts/check.sh            # 2227 tests: the shipped Lua under lupa, the Python layer against fake bridges; no game needed
 ```
 
 `CIV5_CALL_LOG=/path/calls.jsonl` in the server's environment writes one line per tool call (bytes, trips,
 seconds, refusals, and `client`: `CIV5_CLIENT` when set, else the MCP client's name/version, so two models on
 one seat stay apart); `scripts/ledger_report.py [--seat N] [--client codex]` turns it into a per-turn table
 with a per-client footer, and `--usage <dir>` adds what each turn cost the model in tokens, read from the
-clients' own usage records (`docs/TOKEN_ACCOUNTING.md`). Off by default; `scripts/llm_seat_loop.py` sets both for the agent it runs.
+clients' own usage records (`docs/TOKEN_ACCOUNTING.md`); `scripts/usage_measure.py <ledger> --usage <dir>` writes
+one document per client and model on what grows over a session. Off by default; `scripts/llm_seat_loop.py` sets both for the agent it runs.
 
 `python -m harness.spectator --ledger /path/calls.jsonl` serves a live, read-only page (`web/viz/`, d3) of the
 game and the seats' attention: the whole map in greyscale, every plot a tool reply handed a model pulsing once in

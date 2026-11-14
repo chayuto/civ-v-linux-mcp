@@ -14,8 +14,14 @@ Two counters, on purpose (GitLab #26):
 
 Dates are the day the change was committed; "live tNNN" is the game turn it was checked on.
 
-## Unreleased
+## 2.15.0 -- What a turn costs the model (2026-11-14)
 
+Runtime v339 unchanged, 9 tools, 2227 tests. Operator-side only: the server and every tool reply are as they
+were in 2.14.4. Milestone 2.15.0 (#183 to #188, #190); #189, the spectator's token panel, comes after.
+
+- **The words (#190).** README (a bullet, an honest limit, the documentation list), `docs/ARCHITECTURE.md` (where
+  the rows come from), `docs/AGENT_INSTALL.md` (where each client keeps its usage and how to point the report at
+  it), `docs/LIMITATIONS.md` (no counts from a client that writes none; cost is an estimate).
 - **Token accounting, stages 0 and 1 (#183, #184; milestone 2.15.0, `docs/TOKEN_ACCOUNTING.md`).** `harness/usage/`
   reads what each client writes about its own requests into one row per model request -- `new_in`, `cache_read`,
   `cache_write`, `out`, `reasoning`, the time, the civ5 calls the request issued, labelled as the call ledger labels

@@ -63,6 +63,27 @@ another seat's map is not readable through the harness at all. Two things stay o
 game window on a shared display shows the active seat's map to anyone who can see the screen, and hotseat save
 files are plain files of the user running the game. Separate machines, or a LAN game, close both.
 
+## Token counts and cost (operator's side, since 2.15.0)
+
+- **No counts from a client that writes none.** The server never sees usage; `harness/usage/` reads what the
+  client itself wrote (a Claude Code transcript, a Codex rollout, a Grok stream kept by the seat loop). A client
+  with no such record, or a Grok session run outside the seat loop (its usage exists only in the stream), has no
+  token columns; the ledger's `~tok` (reply bytes / 4) is then the only figure, and it is an estimate: measured,
+  a token is about 2.3 bytes of reply for Claude Code, 3.2 for Grok and 4 for Codex.
+- **A client can count more than it writes.** Claude Code answers some requests without keeping an `assistant`
+  row (an away summary, a retry at a usage limit); the report prints the client's higher total as its own line
+  instead of inventing rows for it.
+- **Cost is an estimate.** `harness/usage/prices.json` holds list prices with a date and a source page per
+  model, cache rates where the provider publishes them. It is never an invoice, and under a subscription no
+  such money was paid. A model the table does not list prints tokens and no dollar figure anywhere (the Grok
+  CLI's build models are the live case).
+- **A Grok stream from before 2.15.0 has no time.** The seat loop stamps each line since stage 2; an older
+  stream's requests cannot be placed in a turn and stay under `fixed` or `unplaced`.
+- **No seat reads any of it.** By rule, not by omission: a seat that knew its budget would play differently, and
+  another seat's spend is something the game does not show. There is no budget and no refusal when one is spent.
+- **The ledger report prints a turn with a leader's screen in its wait as several rows.** The measurement tables
+  join them; `scripts/ledger_report.py` does not yet. The sums are right either way.
+
 ## Still to be seen live
 
 The four states this section used to wait for have all been reached: the Switch Ideology button and the

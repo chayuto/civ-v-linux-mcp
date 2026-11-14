@@ -1,4 +1,14 @@
-# Resume here -- 2026-11-14 (small hours): main = 2.14.4 + token accounting stages 0 to 4 and stage 5's instrument (unreleased; runtime v339, 9 tools, 2227 tests).
+# Resume here -- 2026-11-14 (afternoon): main = 2.15.0 (runtime v339 unchanged, 9 tools, 2227 tests; tagged, released, on PyPI).
+**2.15.0 is out: token accounting, operator-side** (#190 closed, milestone 23 closed). The words: a README bullet,
+an honest limit and a documentation row; `docs/ARCHITECTURE.md` "Token accounting" (where the rows come from);
+`docs/AGENT_INSTALL.md` section 11 (where each client keeps its usage, how to point the report at it);
+`docs/LIMITATIONS.md` "Token counts and cost". No code changed since 71a4558. **The registry republish is the
+user's** (`mcp-publisher publish`, after PyPI). **Next, both off the milestone:** #191 (trim the reply to `turn`
+`finish`, 21 to 55% of what the replies add to a context) and #189 (the spectator shows tokens per seat). Still
+open: the ledger report prints a turn with a leader's screen in its wait as several rows. Game state: the Maya
+game on the t242 board, as below.
+
+# Previous -- 2026-11-14 (small hours): main = 2.14.4 + token accounting stages 0 to 4 and stage 5's instrument (unreleased; runtime v339, 9 tools, 2227 tests).
 **#188 is done (the small hours of 2026-11-14).** Six seat-loop runs on the Maya t242 board
 (`Pacal_0242 maya-t242-before-185-check`), each client alone, 20 x 1 and 10 x 2 turns, no usage limit met: logs in
 `logs/bench188/<agent>-t<turns>/` (streams, kept records, the seats' reports, the notebook after), tables in
