@@ -37,6 +37,11 @@ def table(head: list[str], rows: list[list[str]]) -> list[str]:
             *("| " + " | ".join(r) + " |" for r in rows), ""]
 
 
+def shown(s: dict) -> str:
+    """A session by its folder and file: two runs of one agent both hold a `codex-c1.jsonl`."""
+    return f"{Path(s['path']).parent.name}/{s['name']}" if s.get("path") else s["name"]
+
+
 def family(s: dict) -> tuple[str, str]:
     """(client name, model): one document each. The client name is the part of the label before the slash."""
     return str(s["client"] or "unknown").split("/")[0], "+".join(s["models"])
@@ -72,15 +77,22 @@ def document(name: str, model: str, sessions: list[dict], top: int, as_of: str |
     out += table(["session", "cycle turns", "turns", "requests", "peak context", "resets", "read"]
                  + (["est $"] if priced else []) + ["2h", "one read", "two read", "two / one"]
                  + (["two / one $"] if priced else []),
-                 [[f"`{s['name'][:28]}`", str(s["cycle_turns"] or ""), str(len(s["turns"])), str(s["requests"]),
+                 [[f"`{shown(s)[:40]}`", str(s["cycle_turns"] or ""), str(len(s["turns"])), str(s["requests"]),
                    k(s["peak"]), str(s["resets"]), k(usage_report.read_in(s["total"]))]
                   + ([usd(s["total"])] if priced else [])
                   + ([str(h["turns"]), k(h["one"]["read"]), k(h["two"]["read"]),
                       f"{h['two']['read'] / h['one']['read']:.2f}"] if (h := s["halves"]) else ["", "", "", ""])
                   + ([f"{h['two']['cost'] / h['one']['cost']:.2f}" if h and h["one"].get("cost") else ""]
                      if priced else []) for s in sessions])
+    out += ["Summed by the length a session was asked to play (the seat loop's `--turns`):", ""]
+    out += table(["cycle turns", "sessions", "turns", "requests", "read", "read / turn", "out"]
+                 + (["est $", "$ / turn"] if priced else []),
+                 [[str(c["cycle_turns"] or "(no loop)"), str(c["sessions"]), str(c["turns"]), str(c["requests"]),
+                   k(c["read"]), k(c["read"] / c["turns"]) if c["turns"] else "", k(c["out"])]
+                  + ([usd(c), f"{c['cost'] / c['turns']:.3f}" if c["turns"] else ""] if priced else [])
+                  for c in measure.by_cycle_length(sessions)])
     for s in sessions:
-        out += [f"## `{s['name']}`", ""]
+        out += [f"## `{shown(s)}`", ""]
         out += table(["nth", "game turn", "requests", "context first", "context last", "read", "cached", "out"]
                      + (["est $"] if priced else []),
                      [[str(t["nth"]), str(t["turn"]), str(t["requests"]), k(t["first"]), k(t["last"]),

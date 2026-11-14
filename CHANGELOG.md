@@ -74,13 +74,19 @@ Dates are the day the change was committed; "live tNNN" is the game turn it was 
   fixtures: the three live cycles of stage 2 with their 41 ledger rows, and a Codex session of eleven turns with its
   69. Read-only against this machine's files: 1,671 of 1,671 Claude Code calls and 1,021 of 1,022 Codex calls find
   their ledger row, and every session's per-turn sums equal its total. 2191 tests.
-- **Token accounting, stage 5: the instrument for what grows (#188, open until the sessions are played).**
+- **Token accounting, stage 5: what grows (#188).**
   `scripts/usage_measure.py <ledger> --usage <paths> [--min-turns 10] [--top 20] [--out DIR] [--json]` writes one
   document per client and model from the sessions that played ten turns or more: the context and the tokens read at
   each turn position, the `(tool, action)` replies that brought the most tokens (with tokens per reply byte), every
   session's turns, and one session of 2h turns against two of h. `harness/usage/measure.py` does it by subtraction
   over the placed rows (`requests`, `turns`, `labels`, `halves`, `session`, `positions`); `join.place` keeps each
-  call's `reply_bytes` from the ledger. No tokenizer, and nothing reaches a seat. 2225 tests.
+  call's `reply_bytes` from the ledger. No tokenizer, and nothing reaches a seat. A game turn the ledger holds as
+  several groups (a leader's screen in the middle of the wait) is one turn in the tables, and the documents sum the
+  sessions by the cycle length they were asked to play. Measured live 2026-11-14: Claude Code, Codex and Grok each
+  alone on the Maya t242 board, one cycle of 20 turns and two of 10 (`docs/measurements/2026-11-14-what-grows/`,
+  read in `docs/NOTES.md`): a late turn of a 20-turn cycle reads three times an early one, two cycles of 10 read
+  0.62 to 0.88 of the tokens of one of 20 for about 0.78 of the dollars, and the reply to `turn` `finish` is 21 to
+  55% of everything the replies add to the context. 2227 tests.
 
 ## 2.14.4 -- The playbook ships in the package (2026-11-13)
 

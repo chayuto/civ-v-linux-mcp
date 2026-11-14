@@ -93,6 +93,13 @@ class TurnTests(unittest.TestCase):
                           (4, 103, 1, 700, 700, 0)])
         self.assertAlmostEqual(ts[0]["cost"], (500 * 0.5 + 7 * 10.0) / 1e6, delta=1e-4)      # a tally's cost is rounded
 
+    def test_groups_in_a_row_with_one_turn_number_are_one_turn_and_a_turn_met_again_is_another(self):
+        placed = [P(100, group=0, turn=243), P(200, group=1, turn=243), P(300, group=2, turn=244),
+                  P(400, group=3, turn=243)]
+        self.assertEqual([(t["nth"], t["turn"], t["requests"], t["first"], t["last"])
+                          for t in measure.turns(placed, TABLE)],
+                         [(1, 243, 2, 100, 200), (2, 244, 1, 300, 300), (3, 243, 1, 400, 400)])
+
     def test_one_long_session_against_two_of_half_the_length(self):
         s = measure.session({"name": "n", "kind": "cycle", "head": {"turns": 4}, "placed": self.PLACED}, TABLE)
         h = s["halves"]
@@ -111,6 +118,15 @@ class TurnTests(unittest.TestCase):
         self.assertNotIn("cost", s["halves"]["one"])
         self.assertNotIn("cost", s["halves"]["two"])
         self.assertNotIn("cost", s["total"])
+
+    def test_sessions_are_summed_by_the_length_they_were_asked_to_play(self):
+        long_ = measure.session({"name": "a", "kind": "cycle", "head": {"turns": 4}, "placed": self.PLACED}, TABLE)
+        short = [measure.session({"name": n, "kind": "cycle", "head": {"turns": 2},
+                                  "placed": [P(100), P(200, group=0), P(300, group=1)]}, TABLE) for n in "bc"]
+        rows_ = measure.by_cycle_length([long_, *short])
+        self.assertEqual([(c["cycle_turns"], c["sessions"], c["turns"], c["requests"], c["read"]) for c in rows_],
+                         [(2, 2, 4, 6, 1200), (4, 1, 4, 7, 3050)])
+        self.assertIn("cost", rows_[0])
 
     def test_positions_average_the_sessions_that_got_that_far(self):
         a = measure.session({"name": "a", "kind": "cycle", "head": {}, "placed": self.PLACED}, TABLE)
@@ -167,7 +183,7 @@ class ScriptTests(unittest.TestCase):
             self.assertEqual(path.name, "codex-gpt-6.1-sol.md")
             text = path.read_text(encoding="utf-8")
         for heading in ("## By turn position", "## What the replies brought", "## Session length",
-                        "## `codex-rollout.jsonl`"):
+                        "## `session/codex-rollout.jsonl`"):
             self.assertIn(heading, text)
         self.assertIn("| 11 | 38 | 14 |", text)
         self.assertIn("est $", text)

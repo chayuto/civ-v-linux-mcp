@@ -1,10 +1,13 @@
-# Resume here -- 2026-11-14 (small hours): main = 2.14.4 + token accounting stages 0 to 4 and stage 5's instrument (unreleased; runtime v339, 9 tools, 2225 tests).
-**#188, the instrument is done, the sessions are not.** `scripts/usage_measure.py logs/calls.jsonl --usage <dir>
---out docs/measurements` (`harness/usage/measure.py`) writes one document per client and model. What is left: the
-user starts the three agents, each alone on the same seat from a copy of the same save under the seat loop (one run
-of `--turns 20 --cycles 1` and one of `--turns 10 --cycles 2`, each into its own `--log-dir`), then the tables go to
-`docs/measurements/` and the early/late figures and the favoured cycle length to `docs/NOTES.md`. First numbers from
-old sessions are in the stage 5 row of `docs/TOKEN_ACCOUNTING.md`.
+# Resume here -- 2026-11-14 (small hours): main = 2.14.4 + token accounting stages 0 to 4 and stage 5's instrument (unreleased; runtime v339, 9 tools, 2227 tests).
+**#188 is done (the small hours of 2026-11-14).** Six seat-loop runs on the Maya t242 board
+(`Pacal_0242 maya-t242-before-185-check`), each client alone, 20 x 1 and 10 x 2 turns, no usage limit met: logs in
+`logs/bench188/<agent>-t<turns>/` (streams, kept records, the seats' reports, the notebook after), tables in
+`docs/measurements/2026-11-14-what-grows/`, the reading at the end of `docs/NOTES.md`. Ten turns a cycle beats twenty
+(0.62 to 0.88 of the tokens, about 0.78 of the dollars); `turn` `finish` is the reply to trim first. The game is back
+on the t242 board with the notebook as it was; what was in the quick slot before is
+`single/QuickSave-before-188-bench-2026-11-14`. The seat folder `~/projects/grok-desk-seat` is kept (Grok trusts that
+path). **Next: #190** words and release 2.15.0. Open from this stage: the ledger report still prints a turn with a
+leader's screen in its wait as several rows.
 **#187 is done: the report.** `scripts/ledger_report.py <ledger> --usage <file or dir> [--usage ...] [--prices f] [--json]`
 adds `req`, `new in`, `cached`, `out`, `think`, `est $` per turn, the lines `fixed` / `unplaced` / `total`, and a
 footer per client and model (`harness/usage/report.py`, `prices.py`, `prices.json` with seven models dated

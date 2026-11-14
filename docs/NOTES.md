@@ -3611,3 +3611,52 @@ included), citizens 59. The citizen hover read "Because of bonuses your empire h
 -5% the usual amount" (`GetUnhappinessMod` was -5; that is the stock wording). Per-city unhappiness
 summed to 80.05 against an empire total of 80, which is the screen's per-city hundredths, not a second
 formula. 341 tests. The turn was still `ENDTURN_BLOCKING_LEAGUE_CALL_FOR_PROPOSALS`.
+
+## 2026-11-14: what grows in a session (token accounting stage 5, #188)
+
+Three clients, each alone on seat 0 of the same board (`Pacal_0242 maya-t242-before-185-check`, the same notebook
+file put back before every run), under `scripts/llm_seat_loop.py` at effort low: once as one cycle of 20 turns, once
+as two cycles of 10. Six runs, t242 to t261 each, none hit a usage limit. The tables are in
+`docs/measurements/2026-11-14-what-grows/` (`scripts/usage_measure.py logs/calls.jsonl --usage logs/bench188`).
+One run per cell, and the turns are not the same turns twice (each client plays its own game from t242), so a
+difference of a tenth is noise.
+
+Tokens read per turn, the 20-turn cycle (the mean of five turns):
+
+| client, model | requests | turns 1-5 | turns 16-20 | context at turn 1 | at turn 20 | compacted |
+| :--- | ---: | ---: | ---: | ---: | ---: | :--- |
+| Claude Code, sonnet 5.5 | 75 | 275 k | 767 k | 15 k | 220 k | no |
+| Codex, gpt-6.1-sol | 79 | 226 k | 735 k | 27 k | 194 k | no |
+| Grok, grok-4.6-build | 144 | 481 k | 672 k (917 k at turns 9-13) | 28 k | 114 k | once, at 194 k in turn 14, down to 38 k |
+
+A turn late in a 20-turn cycle reads about three times what an early one does, in every client that did not
+compact. The context grows by 9 to 11 thousand tokens a turn on this board (a late game with a World Congress).
+
+One cycle of 20 against two of 10, the same 20 turns:
+
+| client | 20 x 1 read | 10 x 2 read | ratio | 20 x 1 est $ | 10 x 2 est $ | ratio |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Claude Code | 8.67 M | 5.41 M | 0.62 | 1.57 | 1.24 | 0.79 |
+| Codex | 9.41 M | 7.47 M | 0.79 | 1.72 | 1.32 | 0.77 |
+| Grok | 14.79 M | 13.04 M | 0.88 | (no list price) | | |
+
+**The numbers favour 10 over 20**: a fifth to two fifths fewer tokens read and about a fifth fewer dollars, and the
+second cycle's re-orientation (briefing, notebook, a playbook section) is already inside those figures. The dollar
+saving is smaller than the token saving because 96 to 99% of a long context is read from the cache. Grok gains
+least because its client compacts by itself near 200 k, which is a cycle boundary of its own making. What the runs
+do not say: whether play is worse with a shorter memory (no score was compared), and whether 5 beats 10 (the fixed
+part is only 15 to 28 k, so it may).
+
+What the replies brought (the context's growth after a request, less its own output), all three runs of a client:
+
+- `turn` `finish` is first everywhere: 55% of everything the replies added for Claude Code (2,800 tokens a call),
+  32% for Grok, 21% for Codex with `turn` `wait` another 17%. The reply to ending a turn, with the new turn's
+  briefing in it, is the one worth trimming first.
+- `state` `league` is second or third everywhere (9 to 12%): 4,700 to 7,900 tokens a call for Claude Code and Grok.
+- A token costs 2.3 bytes of reply for Claude Code (0.44 tokens a byte), 3.2 for Grok, about 4 for Codex, whose
+  scripts print less than the reply they got. Bytes / 4 holds for Codex alone.
+- Grok issues nearly twice the requests of the others for the same turns (144 against 75 and 79).
+
+Found on the way: the ledger's turn groups close at a `turn` `finish` that hands back a leader's screen, so one game
+turn was several groups (44 for 20 turns); `measure.turns` joins groups in a row with one turn number. The ledger
+report's own table still prints them apart.

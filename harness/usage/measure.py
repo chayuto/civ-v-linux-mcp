@@ -43,13 +43,17 @@ def requests(placed: list[dict]) -> list[dict]:
 
 
 def turns(placed: list[dict], table: dict) -> list[dict]:
-    """One row per turn group that has a request, in order of play."""
-    by: dict[int, list[dict]] = {}
-    for p in placed:
-        if p["where"] == "turn":
-            by.setdefault(p["group"], []).append(p)
+    """One row per game turn that has a request, in order of play. The ledger's turn groups that follow one
+    another with the same turn number are one turn here (a leader's screen in the middle of the wait closes a
+    group and the turn goes on); the same number met again later is a turn played again after a reload."""
+    runs: list[list[dict]] = []
+    for p in sorted((p for p in placed if p["where"] == "turn"), key=lambda p: p["group"]):
+        if runs and runs[-1][-1]["turn"] == p["turn"]:
+            runs[-1].append(p)
+        else:
+            runs.append([p])
     return [{"nth": n, "turn": ps[0]["turn"], "first": report.read_in(ps[0]), "last": report.read_in(ps[-1]),
-             **report.tally(ps, table)} for n, (_, ps) in enumerate(sorted(by.items()), 1)]
+             **report.tally(ps, table)} for n, ps in enumerate(runs, 1)]
 
 
 def labels(placed: list[dict]) -> list[dict]:
@@ -104,7 +108,7 @@ def session(s: dict, table: dict) -> dict:
     f = report.tally(fixed, table) if fixed else None
     ts = turns(placed, table)
     models = sorted({p["model"] or "(no model)" for p in placed})
-    return {"name": s["name"], "kind": s["kind"], "client": s.get("label") or (placed[0]["client"] if placed else None),
+    return {"name": s["name"], "path": s.get("path"), "kind": s["kind"], "client": s.get("label") or (placed[0]["client"] if placed else None),
             "models": models, "cycle_turns": s["head"].get("turns"), "requests": len(placed),
             "resets": sum(r["reset"] for r in reqs), "peak": max((r["context"] for r in reqs), default=0),
             "fixed": f, "turns": ts, "labels": labels(placed), "halves": halves(ts, f),
@@ -123,6 +127,21 @@ def positions(sessions: list[dict]) -> list[dict]:
                "out": sum(t["out"] for t in rows_) / k}
         if all("cost" in t for t in rows_):
             row["cost"] = sum(t["cost"] for t in rows_) / k
+        out.append(row)
+    return out
+
+
+def by_cycle_length(sessions: list[dict]) -> list[dict]:
+    """Per length a session was asked to play (the cycle header's `turns`; None outside the seat loop): how many
+    sessions, the turns they played and what they spent, `{"cycle_turns", "sessions", "turns", "requests",
+    "read", "out"}` with `cost` where every session has one."""
+    by: dict[Any, list[dict]] = {}
+    for s in sessions:
+        by.setdefault(s["cycle_turns"], []).append(s)
+    out = []
+    for n, ss in sorted(by.items(), key=lambda kv: (kv[0] is None, kv[0] or 0)):
+        row = {"cycle_turns": n, "sessions": len(ss), "turns": sum(len(s["turns"]) for s in ss),
+               "requests": sum(s["requests"] for s in ss), **_spent([s["total"] for s in ss])}
         out.append(row)
     return out
 
