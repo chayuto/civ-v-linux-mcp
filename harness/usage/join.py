@@ -126,7 +126,8 @@ def place(usage: list[dict], ledger: list[dict]) -> tuple[list[dict], list[dict]
     """(the usage rows, placed; the turn groups of the ledger). `usage` is one session's rows in order, `ledger`
     that client's ledger rows (`ledger_of`). A placed row is a copy with `where` ("turn", "fixed", "unplaced"),
     `group` (the index of its turn group, None outside a turn), `turn`, `seat` (the group's; otherwise what the
-    row had) and `matched` (how many of its calls the ledger holds)."""
+    row had), `matched` (how many of its calls the ledger holds) and `reply_bytes` (per call, the size of the
+    reply the ledger recorded; None for a call it does not hold)."""
     groups, group_of = turn_groups(ledger)
     placed = []
     last: int | None = None
@@ -140,7 +141,8 @@ def place(usage: list[dict], ledger: list[dict]) -> tuple[list[dict], list[dict]
         else:
             g = last
         p = {**r, "where": "turn" if g is not None else "unplaced" if called else "fixed", "group": g,
-             "turn": groups[g]["turn"] if g is not None else None, "matched": len(mine)}
+             "turn": groups[g]["turn"] if g is not None else None, "matched": len(mine),
+             "reply_bytes": [None if h is None else h.get("bytes") or 0 for h in hits]}
         p["seat"] = groups[g]["seat"] if g is not None else r.get("seat")
         placed.append(p)
     return placed, groups

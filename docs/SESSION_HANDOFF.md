@@ -1,4 +1,10 @@
-# Resume here -- 2026-11-14 (small hours): main = 2.14.4 + token accounting stages 0 to 4 (unreleased; runtime v339, 9 tools, 2208 tests).
+# Resume here -- 2026-11-14 (small hours): main = 2.14.4 + token accounting stages 0 to 4 and stage 5's instrument (unreleased; runtime v339, 9 tools, 2225 tests).
+**#188, the instrument is done, the sessions are not.** `scripts/usage_measure.py logs/calls.jsonl --usage <dir>
+--out docs/measurements` (`harness/usage/measure.py`) writes one document per client and model. What is left: the
+user starts the three agents, each alone on the same seat from a copy of the same save under the seat loop (one run
+of `--turns 20 --cycles 1` and one of `--turns 10 --cycles 2`, each into its own `--log-dir`), then the tables go to
+`docs/measurements/` and the early/late figures and the favoured cycle length to `docs/NOTES.md`. First numbers from
+old sessions are in the stage 5 row of `docs/TOKEN_ACCOUNTING.md`.
 **#187 is done: the report.** `scripts/ledger_report.py <ledger> --usage <file or dir> [--usage ...] [--prices f] [--json]`
 adds `req`, `new in`, `cached`, `out`, `think`, `est $` per turn, the lines `fixed` / `unplaced` / `total`, and a
 footer per client and model (`harness/usage/report.py`, `prices.py`, `prices.json` with seven models dated
