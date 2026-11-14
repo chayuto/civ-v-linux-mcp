@@ -57,6 +57,15 @@ Dates are the day the change was committed; "live tNNN" is the game turn it was 
   (`approach_guess`, `opinion`, the embassy / borders / agreement flags that are true, a friendship's turns left)
   is as it was; `state(what="civ", id, view="summary")` is the whole read. On the 27 leader screens of the three
   v341 bench runs the block is 38% smaller (1,340 to 830 bytes). 2256 tests.
+- **The digest without the runtime's bookkeeping (#191; Python only, runtime v341 unchanged).** Of the 139 event
+  rows a ten-turn Claude Code run read, 26 said a turn of its own had started or ended or that a unit's model was
+  rebuilt (`turn_start`, `turn_end`, `unit_graphics_reset`; `active_player` is the fourth kind): markers the combat
+  narration reads and the briefing never listed. They make no row now, and are dropped before the 120-row cap, so
+  the cap counts what a seat reads. A notification row comes without its panel `id` (no call takes one), its
+  `player` (the reader) and a `summary` its `text` opens with or equals; a `popup_shown` is its name without the
+  number. The events of the three v341 runs: 28.8 to 22.5 KB for Claude Code, 29.1 to 23.4 KB for Codex, 7.5 to
+  6.4 KB for Grok (22, 20 and 15% of the events; 6, 6 and 2% of the replies that carry a digest). A leader's
+  words, a fight, a loss, a capture and every notice's text are as they were. 2260 tests.
 
 ## 2.15.0 -- What a turn costs the model (2026-11-14)
 

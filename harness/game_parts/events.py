@@ -86,15 +86,32 @@ def group_alliance_cascade(events: list[dict]) -> list[dict]:
     kept.sort(key=lambda e: (e.get("seq") is None, e.get("seq") or 0))
     return kept
 
+#: Event kinds the runtime keeps for its own bookkeeping (the combat narration reads the turn markers, the wake check
+#: never looks at them, the briefing has always left them out): a seat's digest comes without them (#191).
+BOOKKEEPING_KINDS = frozenset({"turn_start", "turn_end", "active_player", "unit_graphics_reset"})
+
+
 def _seat_row(e: dict) -> dict:
-    """An event row as a seat reads it: without `audience`, and a notification without `ntype`, `d1`, `d2`."""
+    """An event row as a seat reads it: without `audience`; a notification without `ntype`, `d1`, `d2`, its panel
+    `id` (no call takes one), its `player` (the reader) and a `summary` its `text` opens with or equals; a
+    popup_shown without the popup's number beside its name."""
     if not isinstance(e, dict):
         return e
     row = {k: v for k, v in e.items() if k != "audience"}
     d = row.get("data")
     if row.get("kind") == "notification" and isinstance(d, dict):
-        row["data"] = {k: v for k, v in d.items() if k not in ("ntype", "d1", "d2")}
+        d = {k: v for k, v in d.items() if k not in ("ntype", "d1", "d2", "id", "player")}
+        if d.get("summary") and str(d.get("text") or "").startswith(str(d["summary"])):
+            del d["summary"]
+        row["data"] = d
+    elif row.get("kind") == "popup_shown" and isinstance(d, dict) and d.get("name"):
+        row["data"] = {k: v for k, v in d.items() if k != "type"}
     return row
+
+
+def seat_rows(events: list) -> list:
+    """The digest's events as a seat reads them: no bookkeeping row, each row lean (`_seat_row`)."""
+    return [_seat_row(e) for e in events if not (isinstance(e, dict) and e.get("kind") in BOOKKEEPING_KINDS)]
 
 
 class EventsMixin:
@@ -105,7 +122,8 @@ class EventsMixin:
     def turn_digest(self) -> dict:
         """events_since_last plus the notifications panel, without the panel entries the events already
         carry (live t320: all ten notifications came twice, ~5 KB) and with the game's text markup removed."""
-        events = self.events_since_last()
+        # No row for the runtime's own bookkeeping (#191), and before the cap, which then counts what a seat reads.
+        events = [e for e in self.events_since_last() if not (isinstance(e, dict) and e.get("kind") in BOOKKEEPING_KINDS)]
         omitted = None
         if len(events) > DIGEST_MAX_EVENTS:
             # A cursor that has not moved for many turns (a seat whose finish_turn never completed, a long
@@ -168,7 +186,9 @@ class EventsMixin:
         # #191: what the runtime keeps for itself and no seat can use -- the row's audience (always the reader), a
         # notification's type hash and its two raw data words (the facts they name are already on the row: city_id,
         # unit_id, x, y, the Great Person). 3% of every reply to a turn's end. `seq` stays: it orders the rows.
-        events = [_seat_row(e) for e in events]
+        # The third cut: the bookkeeping rows are gone above (a turn starting or ending, a unit's model rebuilt --
+        # 26 of 139 rows of a ten-turn run); here a notification loses its id / player and a title its text opens with.
+        events = seat_rows(events)
         out = {"events": events, "notifications": notes}
         if omitted:
             out["omitted"] = omitted

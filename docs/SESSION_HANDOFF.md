@@ -1,11 +1,16 @@
-# Resume here -- 2026-11-14 (night): main = 2.15.0 + two cuts of the finish reply + the league summary + the lean relationship (unreleased; runtime v341, 9 tools, 2256 tests).
-**#191, the relationship on a leader's screen.** `Game.discussion()` passes its `relationship` through
-`relationship_inline` (`harness/game_parts/diplomacy.py`, Python only): no false flag, no zero counter, no `ok` /
-`player` / `leader`, `discuss` as a list, no `text` on a history row that repeats `speech`. 38% smaller on the 27
-leader screens of the v341 bench runs (1,340 to 830 bytes). CHANGELOG Unreleased, PLAYBOOK "Leader screens",
-`docs/NOTES.md` last section. **Not read back on a playing client**, like the league summary: one bench run on the
-t242 board (a friendship offer at t243, a league session at t243) checks both. **#191 stays open** for the digest's
-events (15% of a finish reply), the last item. The game is on the t242 board, untouched this session.
+# Resume here -- 2026-11-14 (night): main = 2.15.0 + #191's five cuts (unreleased; runtime v341, 9 tools, 2260 tests).
+**#191 after this session, all Python:** the relationship on a leader's screen (`relationship_inline`,
+`harness/game_parts/diplomacy.py`: no false flag, no zero counter, no `ok` / `player` / `leader`, `discuss` as a
+list, no `text` on a history row that repeats `speech`; 38% smaller on the 27 leader screens of the v341 bench
+runs) and the digest's events (`BOOKKEEPING_KINDS`, `_seat_row` in `harness/game_parts/events.py`: no
+`turn_start` / `turn_end` / `active_player` / `unit_graphics_reset` row, a notification without `id` / `player` /
+a `summary` its text opens with, a popup without its number; 15 to 22% of the events). CHANGELOG Unreleased,
+PLAYBOOK "Leader screens", `docs/NOTES.md` last two sections. **Every item #191 named is built; none of the last
+three (league summary, relationship, digest) is read back on a playing client.** One bench run per client on the
+t242 board (the bench188 recipe; a friendship offer and a league session at t243) is the check: no seat asking for
+`detail="full"`, no extra `state(what="civ")` after a leader's screen, no `turn` `status` read for a marker. Then
+close #191 and cut a release. The game is on the t242 board, untouched this session; a Claude Code civ5 server
+started before today's commits holds older Python, so restart the session before calling civ5 tools from it.
 
 # Previous -- 2026-11-14 (evening): main = 2.15.0 + two cuts of the finish reply + the league summary (unreleased; runtime v341, 9 tools, 2244 tests).
 **#191, the league read.** `state(what="league")` is `league_summary` by default (`harness/game_parts/diplomacy.py`,

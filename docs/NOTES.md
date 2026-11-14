@@ -3717,3 +3717,18 @@ what is false, zero or said by the screen, makes `discuss` a list and drops a hi
 the speech: 830 bytes, 38% less, the same on each client. `state` stays on the history row because
 `discussion_answers` finds a proposed friendship by it. `Game.relationship()` and `state(what="civ",
 view="summary")` are untouched. Not read back on a playing client yet.
+
+### The digest's events (#191, 2026-11-14 night)
+
+The events of the v341 runs by kind (Claude Code, 18 replies with a digest, 139 rows, 28.8 KB of 97.9 KB):
+notification 70 rows / 16.3 KB, leader_message 20 / 4.6 KB, alert 13 / 2.5 KB, unit_graphics_reset 6 / 1.4 KB,
+turn_start and turn_end 10 each / 1.4 KB, the rest one row each. What says nothing to a seat: the 26 bookkeeping
+rows (2.8 KB), a notification's `id` and `player` (1.9 KB), a `summary` that is the text's opening or the text
+itself (most city and wonder notices; a diplomatic notice's title differs and stays), a popup's number.
+`BOOKKEEPING_KINDS` and `_seat_row` (`harness/game_parts/events.py`) take them out at the end of `turn_digest`,
+after the combat narration has read the turn markers; the wake check never looked at those kinds and the briefing
+(`QUIET_KINDS`) never listed them. 22% of the events for Claude Code, 20% for Codex, 15% for Grok.
+
+Left alone: a leader's line that is also the open screen's `speech` (about 1 KB a run; the reader of a digest
+without the screen needs it), an alert that repeats a notification (110 to 220 bytes a run), and `seq` (it orders
+the rows). With this the three items #191 named are done; what is owed is one read-back run per client.

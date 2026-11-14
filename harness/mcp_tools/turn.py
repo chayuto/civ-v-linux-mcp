@@ -365,8 +365,8 @@ def notification_log(limit: int = 40, include_dismissed: bool = True, since: int
 def turn_digest() -> str:
     """Everything recorded since my last call: combats, cities founded/lost, wars, chat, notifications, alerts.
     Notes: a caravan / cargo ship shows up as `unit_destroyed` the turn its trade route starts -- the route
-    IS the unit now (it comes back as a new unit when the route ends); `unit_graphics_reset` means the engine
-    only rebuilt a model (era change, upgrade), the unit is fine; `unit_displaced` is a unit of mine the engine
+    IS the unit now (it comes back as a new unit when the route ends); a model the engine only rebuilt (era
+    change, upgrade) and the turn's own start and end make no row; `unit_displaced` is a unit of mine the engine
     moved while the others played, with no order of mine (`shared_with`: a trade unit on the tile it left). `unit_captured` is a civilian taken, not killed:
     the row carries the unit, its tile, the captor when in sight and (barbarians) the nearest revealed camp. Leader lines you provoked yourself via
     negotiate_deal/propose_deal are not included; unsolicited AI approaches are."""

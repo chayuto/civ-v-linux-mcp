@@ -11,7 +11,8 @@ The turn boundary as one call: end my turn, wait until it is my turn again, and 
 `status` (as turn(action="status"): todo, blocking_name + blocking_hint, popups; in the reply to a finish or a
 wait a flag that is false is left out -- `paused`, `popup_up`, `game_over`, `hotseat`, `processing`, every
 `*_pending` -- so absent means false, and an empty `pending_popups` is left out too), `digest` (as the briefing's digest: what
-happened while I was away), `turn`, and `notes` (what I told the notebook since my last finish or
+happened while I was away; its `events` have no row for a turn of mine starting or ending or a unit's model
+rebuilt, and a notification row is its `text`, with a `summary` only when the title says something else), `turn`, and `notes` (what I told the notebook since my last finish or
 briefing; `notes_unshown` {count, more} counts the older ones, notebook(action="recall") has them all; notes="all" brings
 the latest eight back). Progress notifications go out every few seconds while waiting. If the turn will
 not end, ok=false and `end_turn` carries the refusal and `status.todo` what blocks it (`end_turn.todo` is the pointer "status.todo"): nothing is waited on.
