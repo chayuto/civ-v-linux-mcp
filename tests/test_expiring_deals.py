@@ -88,6 +88,8 @@ assert(ru.hint:find("open borders", 1, true) and ru.hint:find("gold per turn can
 assert(ru.reoffer_on == 44, "reoffer_on is the turn after ends_on: " .. tostring(ru.reoffer_on))
 assert(ru.hint:find("offers the renewal itself", 1, true) and ru.hint:find("reoffer_on", 1, true), "the hint says the AI usually renews first (#144): " .. ru.hint)
 assert(siam.player_id == 3 and siam.civ == nil and siam.turns_left == 1, "an unmet civ is not named")
+-- #191: the long hint once; a later row points at the first
+assert(siam.hint == "as the first row with reoffer_on" and siam.reoffer_on ~= nil, H.json(siam))
 -- the same numbers current_deals prints
 local cd = H.current_deals(0)
 assert(cd.deals[1].turns_left == ru.turns_left and cd.deals[2].turns_left == 4)
@@ -113,6 +115,7 @@ assert(ru.renewed == true and ru.renewed_until == 70 and ru.reoffer_on == nil, H
 assert(ru.hint:find("already renewed", 1, true) and ru.hint:find("turn 70", 1, true), ru.hint)
 assert(ru.turns_left == 0 and ru.ends_on == 40, "the old deal's own numbers stay: " .. H.json(ru))
 assert(por.renewed == nil and por.reoffer_on == 41, "a deal with no newer twin keeps the re-offer hint: " .. H.json(por))
+assert(por.hint:find("stays committed until then", 1, true), "#191: the first row with reoffer_on has the hint in full, a renewed row before it does not count: " .. por.hint)
 -- a newer deal with a different item is no renewal
 W.deals[2].items = { { 2, 30, 70, 5, nil, nil, nil, 1 } }
 rows = H.expiring_deals(0)

@@ -159,9 +159,12 @@ function H.todo(pid)
         end
       end)
       row.attention = H.ongoing_attention(u, pid, going)
-      row.note = row.automated and "on automation; a new order(to='unit', action='move' / 'mission') cancels it"
-                 or "standing move; resumes each turn until it arrives (a new order replaces it)"
+      -- #191: the note was on every row (live Maya t242: ten automated units, the same 75 bytes ten times, 8% of
+      -- every reply to a turn's end); it is said once for the list.
       todo.ongoing = todo.ongoing or {}
+      todo.ongoing_note = "automated: true is a unit on automation; a new order(to='unit', action='move' / 'mission') "
+                          .. "cancels it. Any other row is a standing move: it resumes each turn until it arrives "
+                          .. "(a new order replaces it)"
       todo.ongoing[#todo.ongoing + 1] = row
     end
     if u.IsPromotionReady and u:IsPromotionReady() then
@@ -482,7 +485,7 @@ function H.expiring_deals(pid, within)
     end
     return nil
   end
-  local out = {}
+  local out, said = {}, false
   for _, d in ipairs(r.deals or {}) do
     -- v250: permanent items (an embassy: duration 0) never expire; a deal made of them alone read as
     -- "ends this turn" the turn it was signed (live t145, Mongolia: Babylon's embassy swap, turns_left 0).
@@ -505,12 +508,18 @@ function H.expiring_deals(pid, within)
                           hint = "already renewed: the new deal runs to turn " .. tostring(until_) .. ", nothing to re-offer" }
       else
         local reoffer = type(d.ends_on) == "number" and (d.ends_on + 1) or nil
+        -- #191: the hint in full on the first such row only (live Maya t242: three to five rows a turn, 450 bytes
+        -- each, 8% of every reply to a turn's end); the later rows point at it.
+        local hint = "as the first row with reoffer_on"
+        if not said then
+          said = true
+          hint = "the AI usually offers the renewal itself at the turn the deal ends (a deal screen with renewal: true; "
+                 .. "answer(choice='accept')); if it does not, order(to='civ', action='propose_deal') on reoffer_on. "
+                 .. "A resource, open borders, a research agreement or a defensive pact it carries stays committed "
+                 .. "until then and is refused as not legal before; gold per turn can be re-offered now"
+        end
         out[#out + 1] = { player_id = d.other, civ = d.civ, turns_left = left, ends_on = d.ends_on, items = items,
-                          reoffer_on = reoffer,
-                          hint = "the AI usually offers the renewal itself at the turn the deal ends (a deal screen with renewal: true; "
-                                 .. "answer(choice='accept')); if it does not, order(to='civ', action='propose_deal') on reoffer_on. "
-                                 .. "A resource, open borders, a research agreement or a defensive pact it carries stays committed "
-                                 .. "until then and is refused as not legal before; gold per turn can be re-offered now" }
+                          reoffer_on = reoffer, hint = hint }
       end
     end
   end

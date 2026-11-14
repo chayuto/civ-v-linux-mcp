@@ -86,6 +86,17 @@ def group_alliance_cascade(events: list[dict]) -> list[dict]:
     kept.sort(key=lambda e: (e.get("seq") is None, e.get("seq") or 0))
     return kept
 
+def _seat_row(e: dict) -> dict:
+    """An event row as a seat reads it: without `audience`, and a notification without `ntype`, `d1`, `d2`."""
+    if not isinstance(e, dict):
+        return e
+    row = {k: v for k, v in e.items() if k != "audience"}
+    d = row.get("data")
+    if row.get("kind") == "notification" and isinstance(d, dict):
+        row["data"] = {k: v for k, v in d.items() if k not in ("ntype", "d1", "d2")}
+    return row
+
+
 class EventsMixin:
     """The event stream: turn_digest and the combat narration built from the runtime's event records.
 
@@ -154,6 +165,10 @@ class EventsMixin:
                                 d[k] = attached[k]
             except TunerdError:
                 pass
+        # #191: what the runtime keeps for itself and no seat can use -- the row's audience (always the reader), a
+        # notification's type hash and its two raw data words (the facts they name are already on the row: city_id,
+        # unit_id, x, y, the Great Person). 3% of every reply to a turn's end. `seq` stays: it orders the rows.
+        events = [_seat_row(e) for e in events]
         out = {"events": events, "notifications": notes}
         if omitted:
             out["omitted"] = omitted

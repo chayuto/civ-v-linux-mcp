@@ -14,6 +14,17 @@ Two counters, on purpose (GitLab #26):
 
 Dates are the day the change was committed; "live tNNN" is the game turn it was checked on.
 
+## Unreleased
+
+- **The reply to a turn's end repeats less (#191, runtime v340).** Stage 5 measured `turn` `finish` at 21 to 55% of
+  what the replies add to a context; of the 87 such replies of the Claude Code runs, three repeats were a fifth of the
+  bytes. `todo.ongoing` rows no longer carry the same note each (ten automated units, 75 bytes ten times, 8%):
+  `todo.ongoing_note` says it once, and a row keeps a `note` only when its standing move was held or dropped.
+  `expiring_deals` has the renewal hint in full on the first row with `reoffer_on` and a pointer on the later ones
+  (450 bytes a row, 8%). A digest event row comes without `audience` (always the reader), and a notification without
+  `ntype`, `d1` and `d2` (a hash and two raw engine words; the facts they name are on the row already), 3%. Nothing
+  a seat acts on is gone. 2228 tests.
+
 ## 2.15.0 -- What a turn costs the model (2026-11-14)
 
 Runtime v339 unchanged, 9 tools, 2227 tests. Operator-side only: the server and every tool reply are as they

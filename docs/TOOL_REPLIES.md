@@ -174,14 +174,16 @@ iron has []. No advice is attached: which building or trade would change the num
 `todo.ongoing` lists my units the game is already moving -- automated (AUTOMATE_EXPLORE / AUTOMATE_BUILD) or
 walking a move that needs more turns -- with id, type, x, y, moves, hp, `automated`, `mission_name`
 and `going_to: {x, y}` when a destination is stored. They never block end_turn and are not decisions; a new
-a move or mission order takes an automated unit back. `attention` on a row names what a human would look at:
+a move or mission order takes an automated unit back (`todo.ongoing_note` says so once for the list; a row has a
+`note` of its own only when its standing move was held or dropped this turn). `attention` on a row names what a human would look at:
 a visible barbarian camp on or beside the unit, a visible hostile combat unit beside it, a destination no
 longer revealed or passable. Absent when nothing is ongoing.
 `expiring_deals` lists my deals with a major civ ending within 3 turns: {player_id, civ (only once met),
 turns_left, ends_on, reoffer_on, items: ["we give GOLD_PER_TURN 1", "they give ALLOW_EMBASSY", ...]} -- the rows
 the deals screen prints; `reoffer_on` (ends_on + 1) is the first turn a proposal may renew a resource, open
 borders, a research agreement or a defensive pact it carries (refused as not legal before; gold per turn is
-not gated). It is left off while the trade table holds an offer or a draft (the snapshot never
+not gated; the `hint` saying this is in full on the first row with `reoffer_on`, the later rows point at it).
+It is left off while the trade table holds an offer or a draft (the snapshot never
 clears one) and while another seat's proposal waits. `expiring_friendships` lists declarations of
 friendship ending within 5 turns: {player_id, civ, turns_left, ask_too_soon when the leader screen greys
 out the renewal}; order(to="civ", action="friendship") renews one. Both are read on my own turn only and absent when empty.

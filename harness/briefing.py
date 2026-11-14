@@ -320,7 +320,7 @@ def decisions(ts: dict, cities: list | None) -> list[dict]:
         out.append(row)
     for k, v in todo.items():
         if k in ("units", "promotions", "cities", "research_unset", "incoming_deal", "steal_tech", "ongoing",
-                 "steal_tech_hint", "stacked", "policy", "religion", "league_proposal", "starving", "city_strikes",
+                 "ongoing_note", "steal_tech_hint", "stacked", "policy", "religion", "league_proposal", "starving", "city_strikes",
                  "dig_choice"):
             continue
         if v:
