@@ -1,4 +1,17 @@
-# Resume here -- 2026-11-13 (late night): main = 2.14.4 + two planning documents (no code change; runtime v339, 9 tools, 2141 tests).
+# Resume here -- 2026-11-14 (small hours): main = 2.14.4 + token accounting stages 0 and 1 (unreleased; runtime v339, 9 tools, 2158 tests).
+**#183 and #184 are done** (milestone 2.15.0, `docs/TOKEN_ACCOUNTING.md`): `harness/usage/` (`rows`, `claude_code`,
+`codex`, `grok`: one row per model request, each client's own total beside its reader), `scripts/cut_usage_fixture.py`
+and four fixtures under `tests/fixtures/usage/` cut from real files down to numbers. Operator-side only; the server
+imports none of it. Checked on this machine's files: Grok 502 cycles and Codex 50 cycles add up exactly; Claude Code
+14 of 24 sessions, the rest short by requests that leave no `assistant` row (stage 4 must print that line).
+**Next: #185** (the seat loop stamps an arrival time on every stream line, writes a cycle header, takes
+`--agent claude` on the subscription), then #186 the join. After #185 the user starts the agents for #188: each of
+Claude, Codex and Grok alone on the same seat from a copy of the same save, two boards (a turn-0 opening, the Maya
+save at t242), one repeat (`docs/BENCHMARK.md`, the pilot). Also decided that night: goal boards (a save, a goal, a
+turn limit, a constraint, a referee) are part of the benchmark sketch; the autoplay probe waits for the user's go.
+Game state: as below (Maya game at t242).
+
+# Previous -- 2026-11-13 (late night): main = 2.14.4 + two planning documents (no code change; runtime v339, 9 tools, 2141 tests).
 **No bug or gap was open, so the next milestone is planned:** [2.15.0 Token accounting](https://gitlab.com/Tyler-Meador/civ-v-linux-mcp/-/milestones/23),
 issues #183-#190, one per stage; the plan is `docs/TOKEN_ACCOUNTING.md` (ROADMAP has the pointer). The server never
 sees token counts: the feature joins each client's own usage records (Claude Code transcripts, Codex rollouts, the

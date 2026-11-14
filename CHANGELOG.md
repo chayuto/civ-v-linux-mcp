@@ -14,6 +14,22 @@ Two counters, on purpose (GitLab #26):
 
 Dates are the day the change was committed; "live tNNN" is the game turn it was checked on.
 
+## Unreleased
+
+- **Token accounting, stages 0 and 1 (#183, #184; milestone 2.15.0, `docs/TOKEN_ACCOUNTING.md`).** `harness/usage/`
+  reads what each client writes about its own requests into one row per model request -- `new_in`, `cache_read`,
+  `cache_write`, `out`, `reasoning`, the time, the civ5 calls the request issued, labelled as the call ledger labels
+  them: `claude_code.read` (the session transcript; a request written once per content block is counted once),
+  `codex.read` (the rollout; the cached part is taken out of `input_tokens`, a script's calls go to the response
+  that wrote it) and `grok.read` (the seat loop's stream; no time on any event yet). Each client's own total is
+  read beside it (`session_total`, `thread_total` / `exec_total`, `total`). Operator-side only: the server imports
+  none of it and no reply carries a count. `scripts/cut_usage_fixture.py` cuts a real file down to counts, times,
+  names and renumbered ids and refuses to write unless the cut reads to the same rows; the four fixtures under
+  `tests/fixtures/usage/` are checked for any key the script does not write and any string longer than one word.
+  Checked against this machine's files: 502 Grok cycles and 50 Codex cycles add up to the client's total exactly;
+  14 of 24 Claude Code sessions do, and in the other 10 the client's total is higher by requests it answered
+  without keeping an `assistant` row (an away summary, a retry at a usage limit). 2158 tests.
+
 ## 2.14.4 -- The playbook ships in the package (2026-11-13)
 
 Runtime v339 (unchanged), 9 tools, 2141 tests. Packaging only.
