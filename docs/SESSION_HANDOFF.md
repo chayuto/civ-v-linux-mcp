@@ -1,4 +1,16 @@
-# Resume here -- 2026-11-14 (late afternoon): main = 2.15.0 + two cuts of the finish reply (unreleased; runtime v341, 9 tools, 2234 tests).
+# Resume here -- 2026-11-14 (evening): main = 2.15.0 + two cuts of the finish reply + the league summary (unreleased; runtime v341, 9 tools, 2244 tests).
+**#191, the league read.** `state(what="league")` is `league_summary` by default (`harness/game_parts/diplomacy.py`,
+Python only): 13.7 to 9.3 KB in a session, 29.5 to 17.5 KB between sessions on the bench runs' nine replies;
+`detail="full"` is the old read, `detail="compact"` the summary less its prose, and `detail="summary"` no longer
+means full. Live on the t242 board through `scripts/mcp_session.py` (read-only): 18.8 KB full, 10.5 KB default,
+6.4 KB compact. CHANGELOG Unreleased, `docs/TOOL_REPLIES.md` "state(what="league")", `docs/NOTES.md` last section.
+**Not read back on a playing client**: a bench run with a league read in it (the t242 board has a session at t243) is the check.
+**#191 stays open** for the leader's `relationship` block on a deal screen (8% of a finish reply; Claude and Grok
+answer from it without `question()`) and the digest's events (15%). The game is on the t242 board, untouched this
+session; a Claude Code civ5 server started before bf8c125 still holds the v339 runtime, so restart the session
+before calling civ5 tools from it.
+
+# Previous -- 2026-11-14 (late afternoon): main = 2.15.0 + two cuts of the finish reply (unreleased; runtime v341, 9 tools, 2234 tests).
 **#191, two cuts, both read back on three clients** (CHANGELOG Unreleased; `docs/NOTES.md`, "The finish reply after
 two cuts"). v340: `todo.ongoing_note` once, the expiring-deal hint on the first row, digest rows without `audience`
 / `ntype` / `d1` / `d2`. v341: a finish or wait reply leaves out the status flags that are false

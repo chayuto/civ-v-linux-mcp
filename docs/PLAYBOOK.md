@@ -335,7 +335,10 @@ and sends once more.
   proposal you vote on in the same `votes` list and split `num_votes` between them; a list that leaves
   delegates unassigned is refused unless `abstain: true` (they would abstain for good), and a second call in
   the same session is refused. Between sessions there is nothing to vote on and the
-  proposal rows carry their `call` to propose or repeal instead.
+  proposal rows carry their `call` to propose or repeal instead. The read is a summary: who would thank or
+  resent a proposal is `grateful_if_proposed` / `angry_if_proposed` on the row and on each choice, a greyed
+  resolution has its `why`, a finished project is its name and our part; `detail="full"` is the screen's own
+  wording, `detail="compact"` the ids and names alone.
 
 ## Rules of the house
 

@@ -1,6 +1,7 @@
 """Diplomacy: relationships, war and peace, leader discussions, city-state actions and gifts, the World Congress."""
 from __future__ import annotations
 
+import re
 import time
 from typing import Any
 
@@ -9,6 +10,10 @@ from ..client import TunerdError
 
 from .support import plain_text
 
+
+
+#: What `detail="compact"` takes off a choice: its tooltip, whole or as the summary's two lists.
+_CHOICE_PROSE = ("details", "grateful_if_proposed", "angry_if_proposed")
 
 
 def league_compact(r):
@@ -23,14 +28,115 @@ def league_compact(r):
             new_rows = []
             for row in rows:
                 if isinstance(row, dict) and isinstance(row.get("choices"), list):
-                    row = {**row, "choices": [{k: v for k, v in c.items() if k != "details"} if isinstance(c, dict) else c
-                                              for c in row["choices"]]}
+                    row = {**row, "choices": [{k: v for k, v in c.items() if k not in _CHOICE_PROSE}
+                                              if isinstance(c, dict) else c for c in row["choices"]]}
                 new_rows.append(row)
             out[key] = new_rows
     if isinstance(out.get("members"), list):
         out["members"] = [{k: v for k, v in m.items() if k != "details"} if isinstance(m, dict) else m for m in out["members"]]
     out.pop("active_effects", None)
+    out.pop("more", None)
     out["detail"] = "compact"
+    return out
+
+
+#: The two paragraphs the League Overview appends to a resolution's or a choice's tooltip, and the keys their
+#: bullet lists become in the summary (43 choices carried the two headings, 4 KB of a 28 KB read; GitLab #191).
+_OPINION_HEADS = {"Civilizations that would be grateful if we proposed this:": "grateful_if_proposed",
+                  "Civilizations that would be angry if we proposed this:": "angry_if_proposed"}
+_BULLET = "•"
+#: A member tooltip's opening: the leader, the civ and the delegate count the row has as fields already.
+_MEMBER_HEAD = re.compile(r"^[^\n]*? commands a total of [\d,]+ Delegates?\."
+                          r"(?: Once in session, the amount is fixed until the session ends\.)?\s*")
+_PROJECT_DONE = ("project", "name", "process", "complete", "progress_percent", "our_contribution", "our_tier")
+_SUMMARY_ROWS = ("proposable_enact", "proposable_repeal", "active_resolutions", "pending_proposals", "votable")
+
+
+def _opinions(row):
+    """A row whose `details` ends in the grateful / angry paragraphs, with those as two lists of civ names. A
+    paragraph that is not a heading over bullet lines stays in `details` as it was."""
+    text = row.get("details") if isinstance(row, dict) else None
+    if not isinstance(text, str) or not any(h in text for h in _OPINION_HEADS):
+        return row
+    keep, found = [], {}
+    for para in text.split("\n\n"):
+        head, _, rest = para.partition("\n")
+        lines = [ln.strip() for ln in rest.split("\n") if ln.strip()]
+        key = _OPINION_HEADS.get(head.strip())
+        if key and lines and all(ln.startswith(_BULLET) for ln in lines):
+            found[key] = [ln[len(_BULLET):].strip() for ln in lines]
+        else:
+            keep.append(para)
+    if not found:
+        return row
+    out = {k: v for k, v in row.items() if k != "details"}
+    if keep:
+        out["details"] = "\n\n".join(keep)
+    out.update(found)
+    return out
+
+
+def _summary_row(row):
+    row = _opinions(row)
+    if isinstance(row, dict) and isinstance(row.get("choices"), list):
+        row = {**row, "choices": [_opinions(c) for c in row["choices"]]}
+    return row
+
+
+def league_summary(r):
+    """The league read a seat acts on (GitLab #191: 13 KB in a session, 28 KB between two, 9 to 12% of what a
+    cycle's replies added). Every id, name, vote, choice and action row is kept, and every fact; what goes is
+    said twice or is history: a finished project is its name and our part (its rewards are paid, the
+    contributors' table is the full read's), an open one drops the paragraph its `rewards` rows repeat; a member's
+    tooltip loses the sentence that restates `civ` and `delegates`; a greyed resolution is its name and `why`
+    (the tooltip's last paragraph); a repealable row drops the `details` its `active_resolutions` row has; the
+    grateful / angry paragraphs are two lists of names. `detail="full"` is the read as the screen words it."""
+    if not isinstance(r, dict) or r.get("ok") is False or r.get("has_league") is False:
+        return r
+    out = dict(r)
+    for key in _SUMMARY_ROWS:
+        if isinstance(out.get(key), list):
+            out[key] = [_summary_row(row) for row in out[key]]
+    active = {row.get("resolution_id") for row in out.get("active_resolutions") or []
+              if isinstance(row, dict) and (row.get("details") or row.get("grateful_if_proposed")
+                                            or row.get("angry_if_proposed"))}
+    if isinstance(out.get("proposable_repeal"), list):
+        out["proposable_repeal"] = [
+            {k: v for k, v in row.items() if k not in ("details", *_OPINION_HEADS.values())}
+            if isinstance(row, dict) and row.get("resolution_id") in active else row
+            for row in out["proposable_repeal"]]
+    if isinstance(out.get("unavailable_enact"), list):
+        rows = []
+        for row in out["unavailable_enact"]:
+            if isinstance(row, dict):
+                why = str(row.get("details") or "").strip().rsplit("\n\n", 1)[-1]
+                row = {k: v for k, v in row.items() if k != "details"}
+                if why:
+                    row["why"] = why
+            rows.append(row)
+        out["unavailable_enact"] = rows
+    if isinstance(out.get("members"), list):
+        rows = []
+        for m in out["members"]:
+            if isinstance(m, dict) and isinstance(m.get("details"), str):
+                rest = _MEMBER_HEAD.sub("", m["details"], count=1)
+                m = {k: v for k, v in m.items() if k != "details"}
+                if rest:
+                    m["details"] = rest
+            rows.append(m)
+        out["members"] = rows
+    if isinstance(out.get("projects"), list):
+        rows = []
+        for p in out["projects"]:
+            if isinstance(p, dict) and p.get("complete"):
+                p = {k: p[k] for k in _PROJECT_DONE if k in p}
+            elif isinstance(p, dict) and p.get("rewards"):
+                p = {k: v for k, v in p.items() if k != "details"}
+            rows.append(p)
+        out["projects"] = rows
+    out["detail"] = "summary"
+    out["more"] = ("detail='full' is the screen's own wording: a finished project's rewards and contributors, a "
+                   "greyed resolution's whole tooltip, each tooltip unshortened")
     return out
 
 
@@ -427,7 +533,9 @@ class DiplomacyMixin:
         return r
 
     def league_status(self, pid: int | None = None, detail: str = "full") -> dict:
-        """Read-only: World Congress state. `detail="compact"` (GitLab #117: a 25 KB read at Maya t197) keeps
+        """Read-only: World Congress state. `detail="summary"` (what the `state` tool reads by default, #191;
+        any word but "full" and "compact" means it) is `league_summary` of the rows described below: nothing a
+        seat acts on is gone. `detail="compact"` (GitLab #117: a 25 KB read at Maya t197) is the summary and keeps
         every row and id but drops the repeated prose -- the per-choice `details` paragraph (the resolution's
         own `details` stays, once), the member rows' tooltips -- and shortens `active_effects` away.
         Between sessions (in_session=false): `proposable_enact`
@@ -446,7 +554,9 @@ class DiplomacyMixin:
         shows the split. Unmet contributors are `civ: "unknown"` with no player id. A met member's
         `details` is the delegate tooltip. `has_league=false` if no league exists yet."""
         r = A.league_rows(self.q(self.h('league_status', pid=pid)))
-        return league_compact(r) if detail == "compact" else r
+        if detail == "full":
+            return r
+        return league_compact(league_summary(r)) if detail == "compact" else league_summary(r)
 
     def _league_readback(self, r: Any, pid: int | None) -> Any:
         """A proposal answered a bare ok:true; read back what now stands for the next session."""

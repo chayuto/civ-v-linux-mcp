@@ -3690,3 +3690,19 @@ proving it on a session total would take several runs a cell.
 No client stumbled on the new shape: none read `turn` `status` after a finish to find a flag, none read the
 automated units one by one, and the calls per label are what they were.
 
+### The league read, a summary by default (#191, 2026-11-14 evening)
+
+The nine `state` `league` replies of the bench runs (Claude Code's transcripts, `logs/bench188` and `logs/bench191`),
+by key. In a session (13.7 KB): `members` 5.8 KB (twelve tooltips, each opening with a sentence that restates the
+row's `civ` and `delegates`), `projects` 3.5 KB (two finished projects with their reward text twice and twelve
+contributors each), `votable` 2.2 KB. Between sessions (29.5 KB): `proposable_enact` 10.3 KB, of which the two
+headings "Civilizations that would be grateful / angry if we proposed this" under 43 choices are 4 KB;
+`unavailable_enact` 4.5 KB of tooltips for resolutions nobody can propose; `proposable_repeal` 3.2 KB that repeats
+`active_resolutions` word for word. And `detail="summary"`, which Claude Code passed three times because the `state`
+description offers that word, fell through to the full read.
+
+`league_summary` (`harness/game_parts/diplomacy.py`) is Python over the same runtime reply: 9.3 KB in a session,
+17.5 KB between. No fact a seat votes or proposes on is gone. The issue's other idea, a reply that lists only what
+changed since the seat last read it, was not built: the base it would be read against lives in the client's
+context, which a compaction or a new cycle drops, and the server cannot see that. Not read back on a client yet;
+the next bench run is the check that no seat asks for `detail="full"` after the default.

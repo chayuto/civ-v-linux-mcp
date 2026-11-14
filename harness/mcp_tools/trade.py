@@ -112,7 +112,7 @@ def stage_coup(agent_id: int) -> str:
 
 @retired
 @guarded
-def league_status(detail: str = "full") -> str:
+def league_status(detail: str = "summary") -> str:
     """Read-only: World Congress state -- resolutions I can propose (between sessions) or vote on (during a
     session), each with the tooltip the League Overview shows (`details`). `name` is the button text
     with the choice's icon tag removed (the screen draws that icon): "World Religion: Tengriism",
@@ -123,8 +123,12 @@ def league_status(detail: str = "full") -> str:
     options allow no World Leader victory, whatever `votes_needed_for_diplo_victory` says. See
     league_propose_enact/league_propose_repeal/league_cast_votes.
     The same project paragraph is on a league process in available_production (`league_project`).
-    detail="compact" drops the repeated prose (per-choice details, member tooltips, active_effects) and keeps
-    every id, name and vote row: the read to pick a proposal or a vote from (#117)."""
+    The default, detail="summary", is that read without what it says twice (#191): a finished project is its name
+    and our part, a greyed resolution its name and `why`, the grateful / angry paragraphs are the lists
+    `grateful_if_proposed` / `angry_if_proposed`, a repealable row's `details` is on its `active_resolutions` row.
+    detail="full" is the screen's wording, whole. detail="compact" drops the prose that is left (per-choice
+    details, member tooltips, active_effects) and keeps every id, name and vote row (#117). Every key:
+    how_to_play("league_status")."""
     return J(core.game().league_status(detail=detail))
 
 

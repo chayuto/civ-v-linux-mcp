@@ -37,6 +37,17 @@ Dates are the day the change was committed; "live tNNN" is the game turn it was 
   against 6,887 for Codex, 5,792 against 6,316 for Grok, and 2,127 tokens against 2,753 for Claude Code; no client
   made an extra call for what is no longer there. A session's total did not move beyond what one game differs from
   the next (`docs/NOTES.md`, "The finish reply after two cuts"). 2234 tests.
+- **The league read is a summary by default (#191; Python only, runtime v341 unchanged).** `state(what="league")`
+  was 13 KB in a session and 28 KB between two, 9 to 12% of what a cycle's replies added, and `detail="summary"`
+  (the word the `state` description offers) silently meant the full read. Now the default says once what the
+  screen says twice: the grateful / angry paragraphs under 43 choices are the lists `grateful_if_proposed` /
+  `angry_if_proposed`; a `proposable_repeal` row leaves `details` to its `active_resolutions` row; a greyed
+  resolution is its name and `why`; a finished project is its name and our part (no rewards already paid, no
+  contributors' table); a member tooltip starts at its first bullet. On the nine league replies of the bench
+  runs: 13.7 KB to 9.3 KB in a session, 29.5 KB to 17.5 KB between sessions. `detail="full"` is the read as it
+  was; `detail="compact"` is the summary less its remaining prose (5.2 KB and 12.2 KB). The library's own
+  `Game.league_status()` still reads it whole. Live on the Maya t242 board through a stdio server: 18.8 KB
+  full, 10.5 KB by default, 6.4 KB compact. Not yet read back on a playing client. 2244 tests.
 
 ## 2.15.0 -- What a turn costs the model (2026-11-14)
 

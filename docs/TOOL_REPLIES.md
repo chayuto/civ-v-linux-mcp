@@ -306,6 +306,28 @@ Every answer has context (seat, turn, city/unit), sources (where each field come
 every estimate), n / returned, and `omitted` with the arguments that fetch the rest (`limit`, 1-20).
 detail="full" adds help text (production) and the chooser's hover breakdown (trade).
 
+## state(what="league")
+
+The World Congress. With no `detail` the reply is a summary (`detail: "summary"`, and `more` says what the full read
+adds); `detail="full"` is every tooltip as the League Overview words it, `detail="compact"` the summary without the
+prose that is left (choice lists bare, members without `details`, no `active_effects`).
+
+- Always: `name`, `in_session`, `turns_until_session`, `can_propose`, `remaining_proposals`, `members` (`civ`,
+  `player`, `delegates`, `host`, `you`; `details` is the delegate tooltip from its first bullet on: where the
+  delegates come from, what we know of their goals and, in a session, their top choices), `active_resolutions`,
+  `active_effects`, `projects`, `diplomatic_victory_enabled`.
+- In a session: `votable` rows with `actions` (a yes and a no vote to copy), `remaining_votes`, `vote_note`.
+- Between sessions: `proposable_enact` and `proposable_repeal` rows with `call`, `pending_proposals`,
+  `unavailable_enact`.
+- A resolution row or one of its `choices`: `details` is what it does; `grateful_if_proposed` and
+  `angry_if_proposed` are the civs the screen lists under those two headings.
+- A `proposable_repeal` row is `resolution_id`, `name`, `resolution_type` and `call`: what it does is on the
+  `active_resolutions` row of the same `resolution_id`.
+- An `unavailable_enact` row is `name`, `resolution_type` and `why` (the tooltip's last paragraph: "Already in
+  effect.", "No Civilization has researched Satellites yet.").
+- A finished project is `project`, `name`, `process`, `complete`, `progress_percent`, `our_contribution` and
+  `our_tier`; one still open keeps its costs, tier thresholds and `rewards`.
+
 ## order(to="civ", action="propose_deal")
 
 Offer a trade to another civ. With an AI: drives the game's real leader/trade screens (the only
