@@ -1,0 +1,86 @@
+# Token accounting (what a turn costs the model)
+
+Milestone plan, written 2026-11-13. Target release: 2.15.0. Nothing here is built yet.
+
+## The gap
+
+The harness knows what a turn costs the *game side*: the call ledger (`CIV5_CALL_LOG`, `harness/call_ledger.py`)
+holds one row per tool call with reply bytes, seconds and tuner trips, and `scripts/ledger_report.py` groups them
+by turn. What it prints as `~tok` is reply bytes / 4. It does not know what a turn costs the *model*: the input
+the client re-sends on every request, how much of it was cached, the output, the reasoning. Those numbers decide
+whether a full game is affordable, and they are the numbers other projects publish (Vox Deorum and CivBench
+report average input and output tokens per game for each model).
+
+An MCP server never sees them. The provider reports usage to the client, and the client writes it to its own
+files. So token accounting is an operator-side join of two files the operator already has: the client's usage
+records and the call ledger.
+
+## What the three clients write (read on this machine, 2026-11-13)
+
+| Client | Where | Per request | Time stamp | Traps |
+|---|---|---|---|---|
+| Claude Code | `~/.claude/projects/<slug>/<session>.jsonl`, `message.usage` on assistant rows | `input_tokens`, `cache_read_input_tokens`, `cache_creation_input_tokens`, `output_tokens`, `output_tokens_details.thinking_tokens`; `message.model`; `requestId`; the `tool_use` blocks name the civ5 calls | yes (`timestamp`) | one request is written once per content block with the same usage: count each `requestId` once. `input_tokens` excludes the cached part |
+| Codex | `~/.codex/sessions/**/rollout-*.jsonl`, `token_usage_record` rows; the seat loop's `codex exec --json` stream ends with one `turn.completed` total | `input_tokens`, `cached_input_tokens`, `cache_write_input_tokens`, `output_tokens`, `reasoning_output_tokens`; `response_id` | yes in the rollout, none in the exec stream | `input_tokens` *includes* `cached_input_tokens` (17,523 with 12,032 cached is 5,491 new). The exec stream alone gives a cycle total, not a per-request row |
+| Grok | the seat loop's `--output-format streaming-json` stream, `{"type": "usage"}` events between the `tool_call` events | `input_tokens`, `cache_read_input_tokens`, `cache_creation_input_tokens`, `output_tokens`, `reasoning_tokens` | **none** | position in the stream is the only order; no model name on the event (the loop knows it) |
+
+One real figure, to set the scale: the Codex cycle `logs/night/codex-c41.jsonl` ended with 5,937,986 input tokens
+of which 5,797,120 were cached (97.6 %), 9,038 output, 2,325 of them reasoning. CivBench's table lists 7 to 25
+million input tokens per *game* for a strategist that decides once per turn and moves no unit.
+
+## Rules
+
+1. **Operator-side only.** No usage figure reaches a tool reply, a refusal, the notebook or anything else a seat
+   reads. A seat that knew its budget would play differently, and a seat that knew another seat's spend would
+   know something the game does not show (the no-other-seat-metadata rule). The server stays as it is.
+2. **Numbers, never text.** A reader takes counts, ids, tool names and times out of a transcript and nothing else.
+   No prompt, reply or thought is copied into a usage row, a fixture or the repository (which is public).
+3. **The provider's own counts.** No tokenizer and no new dependency. Where a client reports nothing, the row
+   says so; bytes / 4 stays in the reports, labelled as the estimate it is.
+4. **Nothing dropped, nothing twice.** For every session the per-turn sums equal the client's own total. That
+   equality is the test of each stage.
+5. **Cost is a labelled estimate.** A dated price table in the repository, list prices, cache rates applied
+   where the provider publishes them. A subscription client spends tokens, not dollars; the report says which.
+
+## One row shape
+
+`harness/usage/` (new package). A usage row, one per model request:
+
+```
+{"t": 1794612894.2, "client": "codex/gpt-6.1-sol", "model": "gpt-6.1-sol", "session": "<id>", "request": "<id>",
+ "new_in": 5491, "cache_read": 12032, "cache_write": 0, "out": 100, "reasoning": 0,
+ "calls": [{"tool": "state", "action": "units"}], "source": "codex-rollout"}
+```
+
+`new_in + cache_read + cache_write` is everything the model read on that request, in every client's terms (the
+readers normalise Codex's inclusive `input_tokens`). `reasoning` is the part of `out` that was thinking, where the
+client says. `calls` are the civ5 calls that request issued. After the join a row also carries `seat` and `turn`.
+
+## Stages
+
+| Stage | Work | Done when |
+|---|---|---|
+| 0 | Fixtures: a slice of each real source cut down to numbers, ids, tool names and times (a script does the cutting, so it can be re-run when a client changes its format); the table above re-checked against the current CLI versions | `tests/fixtures/usage/` holds the three slices, a test fails if a fixture carries any string field outside an allow-list |
+| 1 | `harness/usage/`: the row shape and three readers (`claude_code`, `codex`, `grok`), each a pure function from lines to rows; the dedupe by `requestId`; the Codex subtraction | each fixture reads to rows whose totals equal the totals counted by hand in the fixture; a Claude Code session and its transcript total agree |
+| 2 | The seat loop (`scripts/llm_seat_loop.py`) writes what the join needs: an arrival time on every line of the CLI stream (Grok has none), a header row per cycle (agent, model, effort, seat, cycle, start, end, the turns asked for), and `--agent claude` so the third client runs under the same loop | one cycle of each agent yields a stream the readers take with no file from a home directory |
+| 3 | The join (`harness/usage/join.py`): usage rows and ledger rows of one client in time order; each request gets the seat and game turn of the calls it issued, a request with no call takes the turn of the call before it; turns are grouped as `ledger_report.turns` groups them; requests before the first call are the bucket `fixed` (system prompt, tool listing, AGENTS.md) | on the fixtures every request lands in exactly one turn or in `fixed`, and the per-turn sums equal the session total |
+| 4 | The report: `scripts/ledger_report.py --usage <file or dir>` adds per turn `req`, `new in`, `cached`, `out`, `think` and cost; the footer adds totals per game and per client, tokens per turn, the cache share, the `fixed` share, and the measured tokens per reply byte for that client (what bytes / 4 should have been); `--json`; `harness/usage/prices.json` with a date and a source per model, an unknown model prints tokens and no cost | the report for the Codex night cycles reproduces each cycle's `turn.completed` total; a model missing from the price table prints no dollar figure anywhere |
+| 5 | What grows: per cycle, the context size at each request against the turn number; which `(tool, action)` replies brought in the most tokens; what a cycle length of N turns costs against N/2 (the seat loop's `--turns`) | `docs/measurements/` holds one table per client from a real session of ten turns or more, and `docs/NOTES.md` says tokens per turn early and late and the cycle length the numbers favour. Needs a live game |
+| 6 | The spectator page shows tokens per seat (this turn, this game) from the same rows, tailed like the ledger. Operator's view only; it may slip to the next milestone | the replay of a recorded session shows the same totals as the report |
+| 7 | Words and release: README bullet, ARCHITECTURE (where the rows come from), AGENT_INSTALL (where each client keeps its usage and how to point the report at it), LIMITATIONS (no counts from a client that writes none; cost is an estimate), CHANGELOG, 2.15.0 | the release row, test count and bullets are current; PyPI, both forges' Release objects, the registry republish is the user's |
+
+Order: 0 and 1 need no game and no client. 2 touches the seat loop, which a running night game uses: it deploys
+between cycles like any Python edit. 3 and 4 are the feature. 5 is the first use of it and needs play.
+
+## Not in this milestone
+
+- A budget the seat can see or a refusal when one is spent (rule 1; it would be a separate, opt-in design).
+- Counting tokens with a tokenizer, or calling a provider's count endpoint.
+- Reconciling with a provider's invoice.
+- Any change to a tool reply's size. The report will say which replies cost most; trimming them is the usual
+  `reply-size` issue, filed from what stage 5 finds.
+
+## Open questions (the user's)
+
+1. Is the spectator stage (6) wanted in 2.15.0 or after it?
+2. Stage 5 needs ten or more turns per client. Which game: the Maya save (t242), or a fresh hotseat with three seats?
+3. Should `--agent claude` in the seat loop run on the subscription (as Codex and Grok do) or on an API key?

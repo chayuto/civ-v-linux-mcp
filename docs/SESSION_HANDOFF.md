@@ -1,4 +1,16 @@
-# Resume here -- 2026-11-13 (night): main = 2.14.4 (runtime v339 unchanged, 9 tools, 2141 tests; tagged, released, on PyPI).
+# Resume here -- 2026-11-13 (late night): main = 2.14.4 + two planning documents (no code change; runtime v339, 9 tools, 2141 tests).
+**No bug or gap was open, so the next milestone is planned:** [2.15.0 Token accounting](https://gitlab.com/Tyler-Meador/civ-v-linux-mcp/-/milestones/23),
+issues #183-#190, one per stage; the plan is `docs/TOKEN_ACCOUNTING.md` (ROADMAP has the pointer). The server never
+sees token counts: the feature joins each client's own usage records (Claude Code transcripts, Codex rollouts, the
+seat loop's Grok stream; shapes and traps read off this machine's files) to the call ledger, operator-side, and no
+seat reads the result. **Start with #183 and #184** (fixtures cut down to numbers, then `harness/usage/` readers):
+they need no game and no client. Three questions in the plan are the user's (spectator stage in or out, which game
+for the measured sessions, `--agent claude` on subscription or key). `docs/CIVBENCH.md` holds first thoughts on
+CivBench (arXiv 2604.07733): four ways to use the project there, what stands in the way, first steps, and three
+questions for the user; nothing in it is decided. `glab` is not installed on this machine: the GitLab REST API with
+`PRIVATE-TOKEN` from `.claude/.glpat` (python urllib) did the filing. Game state: as below (Maya game at t242).
+
+# Previous -- 2026-11-13 (night): main = 2.14.4 (runtime v339 unchanged, 9 tools, 2141 tests; tagged, released, on PyPI).
 **2.14.4:** the wheel carries docs/PLAYBOOK.md and docs/TOOL_REPLIES.md (symlinks under `harness/docs/`, built in as
 files; never replace them with copies). 2.14.3 is in the official MCP Registry (the user published it); the user
 republishes each new version with `mcp-publisher publish` after the PyPI upload.
