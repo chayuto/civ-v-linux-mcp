@@ -183,6 +183,27 @@ class HeldMoveIsATodoNote(unittest.TestCase):
             ts = g._arrive(g.turn_state())
         self.assertEqual(ts["todo"]["ongoing"][0]["note"], held["err"])
 
+    def test_a_held_move_on_a_unit_listed_by_id_makes_it_a_row_again(self):
+        """v341 (#191): a quiet automated unit is an id under its type; a held move gives it something to say."""
+        g = Game.__new__(Game)
+        g.seat = 0
+        g._runtime_ok = True
+        g._pid = lambda pid=None: 0
+        held = {"unit_id": 16385, "x": 31, "y": 25, "held": True, "reason": "camp", "err": "standing move held: a barbarian camp"}
+        flags = dict.fromkeys(Game.MODAL_FLAGS, False)
+        g.q = lambda code, timeout=None: [held] if "H.resume_moves" in code else (
+            {"turn": 5, "active_player": 0, "my_turn": True, "processing": False, "hotseat": False, "pending_popups": [], **flags,
+             "todo": {"units": [], "automated": {"WARRIOR": [16385], "WORKER": [9]}}}
+            if "H.turn_state" in code else [])
+        g.notebook = lambda: (_ for _ in ()).throw(RuntimeError("none"))
+        g.expiring_city_states = list
+        g._unit_rows = lambda pid=None: [{"id": 16385, "x": 31, "y": 24, "moves": 0, "max_moves": 2}]
+        from unittest import mock
+        with mock.patch("harness.game.time.sleep", lambda s: None):
+            ts = g._arrive(g.turn_state())
+        self.assertEqual(ts["todo"]["ongoing"], [{"id": 16385, "type": "WARRIOR", "automated": True, "note": held["err"]}])
+        self.assertEqual(ts["todo"]["automated"], {"WORKER": [9]})
+
 
 if __name__ == "__main__":
     unittest.main()

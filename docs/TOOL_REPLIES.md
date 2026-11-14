@@ -8,11 +8,13 @@ whole; extend it here when a reply gains a key.
 ## turn(action="finish")
 
 The turn boundary as one call: end my turn, wait until it is my turn again, and return the new turn --
-`status` (as turn(action="status"): todo, blocking_name + blocking_hint, popups), `digest` (as the briefing's digest: what
+`status` (as turn(action="status"): todo, blocking_name + blocking_hint, popups; in the reply to a finish or a
+wait a flag that is false is left out -- `paused`, `popup_up`, `game_over`, `hotseat`, `processing`, every
+`*_pending` -- so absent means false, and an empty `pending_popups` is left out too), `digest` (as the briefing's digest: what
 happened while I was away), `turn`, and `notes` (what I told the notebook since my last finish or
 briefing; `notes_unshown` {count, more} counts the older ones, notebook(action="recall") has them all; notes="all" brings
 the latest eight back). Progress notifications go out every few seconds while waiting. If the turn will
-not end, ok=false and `end_turn` carries the refusal with the todo that blocks it: nothing is waited on.
+not end, ok=false and `end_turn` carries the refusal and `status.todo` what blocks it (`end_turn.todo` is the pointer "status.todo"): nothing is waited on.
 
 `actions=[{tool, args}, ...]` runs those orders first, exactly as `batch(actions=[...])` would: in order, stopping at the first
 refusal, each order's own `action_id` replaying on a retry. The turn is ended only when every order was ok.
@@ -24,7 +26,7 @@ refusal after the batch. Waiting, loading, the turn's end and the batch itself a
 list, as in `batch`.
 
 When the engine refuses the end because units still have movement (`end_turn.blocking` is
-`ENDTURN_BLOCKING_UNITS`, `end_turn.todo.units` lists them), the refusal also carries `end_turn.skip_actions`:
+`ENDTURN_BLOCKING_UNITS`, `status.todo.units` lists them), the refusal also carries `end_turn.skip_actions`:
 one `{tool: "order", args: {to: "unit", action: "mission", id: N, args: {mission: "MISSION_SKIP"}}}` per listed
 unit, ready to pass as the next call's `actions` -- and `end_turn.hint` says so. A plain `end_turn` refusal carries the same two keys at top
 level. A unit keeps the turn open while it has moves left after its order (a one-plot move, an attack): it can
@@ -175,7 +177,9 @@ iron has []. No advice is attached: which building or trade would change the num
 walking a move that needs more turns -- with id, type, x, y, moves, hp, `automated`, `mission_name`
 and `going_to: {x, y}` when a destination is stored. They never block end_turn and are not decisions; a new
 a move or mission order takes an automated unit back (`todo.ongoing_note` says so once for the list; a row has a
-`note` of its own only when its standing move was held or dropped this turn). `attention` on a row names what a human would look at:
+`note` of its own only when its standing move was held or dropped this turn). An automated unit with nothing to
+look at (no `attention`, no stored destination, full health) is not a row: `todo.automated` holds such units as
+ids by type, {"WORKER": [id, ...], "CARAVAN": [...]}; state(what="unit", id, view="tactical") reads one. `attention` on a row names what a human would look at:
 a visible barbarian camp on or beside the unit, a visible hostile combat unit beside it, a destination no
 longer revealed or passable. Absent when nothing is ongoing.
 `expiring_deals` lists my deals with a major civ ending within 3 turns: {player_id, civ (only once met),

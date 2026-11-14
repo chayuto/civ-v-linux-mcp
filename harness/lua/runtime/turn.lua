@@ -160,12 +160,23 @@ function H.todo(pid)
       end)
       row.attention = H.ongoing_attention(u, pid, going)
       -- #191: the note was on every row (live Maya t242: ten automated units, the same 75 bytes ten times, 8% of
-      -- every reply to a turn's end); it is said once for the list.
-      todo.ongoing = todo.ongoing or {}
-      todo.ongoing_note = "automated: true is a unit on automation; a new order(to='unit', action='move' / 'mission') "
-                          .. "cancels it. Any other row is a standing move: it resumes each turn until it arrives "
-                          .. "(a new order replaces it)"
-      todo.ongoing[#todo.ongoing + 1] = row
+      -- every reply to a turn's end); it is said once for the list. v341: an automated unit with nothing to look
+      -- at (no attention, no stored destination, full health) is an id under its type in `automated`, not a row
+      -- (the ten rows were another 7%); state(what='unit', id) has the rest.
+      todo.ongoing_note = "`automated` is my units on automation with nothing to look at, ids by type; a row in `ongoing` "
+                          .. "with automated: true is one that has (attention, damage, a destination). A new "
+                          .. "order(to='unit', action='move' / 'mission') cancels automation. Any other row is a standing "
+                          .. "move: it resumes each turn until it arrives (a new order replaces it)"
+      local okm, maxhp = pcall(function() return u:GetMaxHitPoints() end)
+      if row.automated and not row.attention and not going and okm and row.hp == maxhp then
+        todo.automated = todo.automated or {}
+        local ids = todo.automated[row.type] or {}
+        ids[#ids + 1] = row.id
+        todo.automated[row.type] = ids
+      else
+        todo.ongoing = todo.ongoing or {}
+        todo.ongoing[#todo.ongoing + 1] = row
+      end
     end
     if u.IsPromotionReady and u:IsPromotionReady() then
       todo.promotions[#todo.promotions + 1] = u:GetID()
@@ -544,8 +555,10 @@ function H.expiring_friendships(pid, within)
         local okc, counter = pcall(function() return p:GetDoFCounter(i) end)
         local left = okc and type(counter) == "number" and (GameDefines.DOF_EXPIRATION_TIME - counter) or nil
         if left and left <= within then
+          -- #191: in full on the first row, a pointer on the later ones (as expiring_deals)
           local e = { player_id = i, civ = o:GetCivilizationShortDescription(), turns_left = left,
-                      hint = "the engine refuses a new declaration while this one runs (order(to='civ', action='friendship'): already friends): order(to='civ', action='friendship') the turn after it lapses, unless the AI asks first" }
+                      hint = #out > 0 and "as the first row"
+                             or "the engine refuses a new declaration while this one runs (order(to='civ', action='friendship'): already friends): order(to='civ', action='friendship') the turn after it lapses, unless the AI asks first" }
           local okt, soon = pcall(function() return o:IsDoFMessageTooSoon(pid) end)
           if okt and soon then e.ask_too_soon = true end
           out[#out + 1] = e

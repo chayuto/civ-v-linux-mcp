@@ -1292,6 +1292,6 @@ class UnitsMixin:
         if ids is None and not rows:
             # GitLab #126 (Siam t10): an empty list with source todo while two units existed, and no word on where
             # the units are.
-            r["note"] = ("no unit awaits orders this turn (units on standing moves or automated are in todo.ongoing); "
+            r["note"] = ("no unit awaits orders this turn (units on standing moves or automated are in todo.ongoing / todo.automated); "
                          "every unit: state(what='units'); one unit's actions: state(what='unit', id, view='actions')")
         return r

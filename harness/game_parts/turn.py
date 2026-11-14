@@ -389,6 +389,17 @@ class TurnMixin:
             for u in list(todo.get("units") or []) + list(todo.get("ongoing") or []):
                 if isinstance(u, dict) and u.get("id") in dropped:
                     u["note"] = dropped[u["id"]]
+            # v341: an automated unit with nothing to look at is an id under its type; one whose move was held or
+            # dropped has something to say, so it becomes a row again
+            auto = todo.get("automated") if isinstance(todo.get("automated"), dict) else {}
+            for type_, ids in list(auto.items()):
+                for i in [i for i in ids if i in dropped] if isinstance(ids, list) else []:
+                    ids.remove(i)
+                    todo.setdefault("ongoing", []).append({"id": i, "type": type_, "automated": True, "note": dropped[i]})
+                if not ids:
+                    del auto[type_]
+            if "automated" in todo and not auto:
+                del todo["automated"]
         if owned:
             orders = self._turn_start_orders(ts)
             if orders:
@@ -873,7 +884,7 @@ class TurnMixin:
             # `stacked` is a warning (two of my combat units share a plot; the engine lets the turn end), not a
             # decision: the unit that needs orders is in todo.units already (Codex c41, 2026-09-27: a quiet run
             # woke on "todo.stacked" alone, for a stack its own note called non-blocking).
-            if v and k not in ("steal_tech_hint", "ongoing", "ongoing_note", "stacked"):
+            if v and k not in ("steal_tech_hint", "ongoing", "ongoing_note", "automated", "stacked"):
                 reasons.append(f"todo.{k}")
         # #37: an ongoing unit (automated, or on a standing move) is not a decision; it wakes the run only
         # when the runtime attached `attention` -- a visible camp or hostile beside it, or a destination it

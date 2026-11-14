@@ -219,7 +219,33 @@ def wait_for_my_turn(timeout_seconds: int = WAIT_TIMEOUT, ctx: Context = None) -
     r["seat"] = g.seat
     r["gate"] = _gate(r, g.seat)
     _with_digest(g, r)
-    return J(r)
+    return J(_lean(r))
+
+
+#: Status flags a turn boundary's reply leaves out while they are false (#191: sixteen of them, 435 bytes and 8% of
+#: every reply to a turn's end, saying sixteen times that nothing is up). turn(action="status") keeps them all.
+QUIET_FLAGS = ("turn_timer", "popup_up", "turn_complete_sent", "paused", "city_state_greeting_pending", "hotseat",
+               "simultaneous", "processing", "load_screen_pending", "hand_off_pending", "game_over",
+               "leader_greeting_pending", "great_person_reward_pending", "tech_popup_pending", "discussion_pending",
+               "dynamic_turns")
+
+
+def _lean(r: dict) -> dict:
+    """The reply to a turn boundary (finish, wait) without what says nothing or says it twice: a status flag in
+    QUIET_FLAGS that is false, an empty `pending_popups`, and a refused end's `todo` when `status.todo` is in the
+    same reply (read a moment later). Absent means false; nothing that is true or asked of the seat is dropped."""
+    if not isinstance(r, dict):
+        return r
+    st = r.get("status") if isinstance(r.get("status"), dict) else r
+    for k in QUIET_FLAGS:
+        if st.get(k) is False:
+            del st[k]
+    if st.get("pending_popups") == []:
+        del st["pending_popups"]
+    end = r.get("end_turn")
+    if isinstance(end, dict) and isinstance(end.get("todo"), dict) and st is not r and isinstance(st.get("todo"), dict):
+        end["todo"] = "status.todo"
+    return r
 
 
 def _with_digest(g, r: dict) -> None:
@@ -441,17 +467,17 @@ def finish_turn(actions: list[dict] | None = None, autosave: bool = True, timeou
                                                    "while a leader screen was being answered, and none of them ran"}})
         st = r.get("status") if isinstance(r.get("status"), dict) else r
         r["gate"] = _gate(st, g.seat)
-        return J(r)
+        return J(_lean(r))
     if actions:
         from harness.mcp_tools.batch import run_batch
         batch = run_batch(actions, stop_on_refusal=True, force=force)
         if not batch.get("ok"):
             with _op(g):
                 st = g.turn_state()
-            return J({"ok": False, "ended": False, "seat": g.seat, "turn": st.get("turn"), "batch": batch,
-                      "status": st, "gate": _gate(st, g.seat),
-                      "hint": "an order was refused, so the turn was not ended: read batch.results, re-check the "
-                              "state, then turn(action='finish') again with the orders still wanted (or none)"})
+            return J(_lean({"ok": False, "ended": False, "seat": g.seat, "turn": st.get("turn"), "batch": batch,
+                            "status": st, "gate": _gate(st, g.seat),
+                            "hint": "an order was refused, so the turn was not ended: read batch.results, re-check the "
+                                    "state, then turn(action='finish') again with the orders still wanted (or none)"}))
     turn_before = None
     if batch is not None:
         with _op(g):
@@ -511,4 +537,4 @@ def finish_turn(actions: list[dict] | None = None, autosave: bool = True, timeou
                     r["notes"] = g.notes_with_unit_check(r["notes"])   # #63
         except Exception:  # the notebook is a convenience; the turn result must still arrive
             pass
-    return J(r)
+    return J(_lean(r))

@@ -320,7 +320,7 @@ def decisions(ts: dict, cities: list | None) -> list[dict]:
         out.append(row)
     for k, v in todo.items():
         if k in ("units", "promotions", "cities", "research_unset", "incoming_deal", "steal_tech", "ongoing",
-                 "ongoing_note", "steal_tech_hint", "stacked", "policy", "religion", "league_proposal", "starving", "city_strikes",
+                 "ongoing_note", "automated", "steal_tech_hint", "stacked", "policy", "religion", "league_proposal", "starving", "city_strikes",
                  "dig_choice"):
             continue
         if v:
@@ -685,7 +685,8 @@ def build(ts: dict, summary: dict, cities: list, units: list, board: dict, basel
                for u in units if isinstance(u, dict) and isinstance(u.get("hp"), int) and isinstance(u.get("max_hp"), int)
                and u["hp"] < u["max_hp"]]
     out["units"] = {"total": len(units), "by_type": by_type,
-                    "ongoing": len(todo.get("ongoing") or []),
+                    "ongoing": len(todo.get("ongoing") or []) + sum(
+                        len(ids) for ids in (todo.get("automated") or {}).values() if isinstance(ids, list)),
                     "attention": _cap(attention, limit, "turn(action='status') todo.ongoing")["rows"],
                     "damaged": _cap(damaged, limit, "state(what='units')")}
     prev_threats = prev.get("threats") if baseline.get("comparable") and isinstance(prev, dict) else None

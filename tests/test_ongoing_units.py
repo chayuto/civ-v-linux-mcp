@@ -130,14 +130,13 @@ class OngoingLuaTests(support.LuaRuntimeTests):
         self.run_lua(r"""
 local t = H.todo(0)
 assert(#t.units == 0, "nothing needs orders: an automated scout, a fortified archer and a walking settler, got " .. H.json(t.units))
-assert(t.ongoing and #t.ongoing == 2, "the scout and the settler are ongoing, got " .. H.json(t.ongoing))
-local scout, settler = t.ongoing[1], t.ongoing[2]
-assert(scout.id == 101 and scout.type == "SCOUT" and scout.automated == true and scout.going_to == nil, H.json(scout))
-assert(scout.x == 10 and scout.y == 10 and scout.moves == 0 and scout.hp == 100 and scout.mission_name == "MISSION_MOVE_TO")
-assert(scout.attention == nil, "an explorer merely exploring is not an alert")
-assert(scout.note == nil and settler.note == nil, "#191: the note is said once for the list, not on every row")
+assert(t.ongoing and #t.ongoing == 1, "the settler is the one ongoing row, got " .. H.json(t.ongoing))
+local settler = t.ongoing[1]
+-- v341 (#191): an automated unit with nothing to look at is an id under its type, not a row
+assert(t.automated and #t.automated.SCOUT == 1 and t.automated.SCOUT[1] == 101, "the exploring scout: " .. H.json(t.automated))
+assert(settler.note == nil, "#191: the note is said once for the list, not on every row")
 assert(t.ongoing_note:find("order(to='unit', action='move'", 1, true), "the list says how to take a unit back")
-assert(t.ongoing_note:find("standing move", 1, true), "and what a row without automated is")
+assert(t.ongoing_note:find("standing move", 1, true) and t.ongoing_note:find("ids by type", 1, true), t.ongoing_note)
 assert(settler.id == 103 and settler.automated == nil, "automated is only ever true")
 assert(settler.going_to.x == 8 and settler.going_to.y == 8, "the standing destination is on the row: " .. H.json(settler))
 assert(settler.attention == nil, "a revealed, passable destination with nothing beside the unit is quiet")
@@ -237,11 +236,11 @@ assert(a and #a == 1 and a[1].kind == "camp" and a[1].x == 11 and a[1].y == 10, 
 -- the same camp under fog is unknown here, as on the map
 World.fogged["11,10"] = true
 t = H.todo(0)
-assert(t.ongoing[1].attention == nil, "a fogged neighbour is not read: " .. H.json(t.ongoing[1]))
+assert(t.automated and t.automated.SCOUT[1] == 101, "a fogged neighbour is not read: " .. H.json(t.ongoing))
 World.fogged["11,10"] = nil
 World.camp = { x = 13, y = 12 }
 t = H.todo(0)
-assert(t.ongoing[1].attention == nil, "a camp two plots away is not beside the scout")
+assert(t.automated and t.automated.SCOUT[1] == 101, "a camp two plots away is not beside the scout")
 World.camp = nil
 -- a barbarian brute next to the scout
 World.hostile = { x = 9, y = 11, unit = make_unit{ id = 900, type = 4, x = 9, y = 11, strength = 8, hp = 60, owner = 63 } }
@@ -252,7 +251,7 @@ assert(a[1].owner == "Barbarians" and a[1].unit == "BRUTE" and a[1].hp == 60 and
 -- a warrior of a civ we are at peace with is not hostile; at war it is, and it is named as met
 World.hostile = { x = 9, y = 11, unit = make_unit{ id = 901, type = 5, x = 9, y = 11, strength = 8, owner = 1 } }
 t = H.todo(0)
-assert(t.ongoing[1].attention == nil, "a neighbour at peace does not wake anyone")
+assert(t.automated and t.automated.SCOUT[1] == 101, "a neighbour at peace does not wake anyone")
 World.at_war[1] = true
 t = H.todo(0)
 assert(t.ongoing[1].attention[1].owner == "Russia", H.json(t.ongoing[1].attention))
@@ -260,23 +259,23 @@ World.at_war[1] = nil
 -- a civilian of an enemy is not a combat unit
 World.hostile = { x = 9, y = 11, unit = make_unit{ id = 902, type = 3, x = 9, y = 11, strength = 0, owner = 63 } }
 t = H.todo(0)
-assert(t.ongoing[1].attention == nil, "an enemy civilian is not a threat")
+assert(t.automated and t.automated.SCOUT[1] == 101, "an enemy civilian is not a threat")
 """)
 
     def test_a_destination_the_seat_cannot_reach_is_attention(self):
         self.run_lua(r"""
 World.unrevealed["8,8"] = true
 local t = H.todo(0)
-local a = t.ongoing[2].attention
-assert(a and a[1].kind == "destination_unrevealed" and a[1].x == 8 and a[1].y == 8, H.json(t.ongoing[2]))
+local a = t.ongoing[1].attention
+assert(a and a[1].kind == "destination_unrevealed" and a[1].x == 8 and a[1].y == 8, H.json(t.ongoing[1]))
 World.unrevealed["8,8"] = nil
 World.impassable["8,8"] = true
 t = H.todo(0)
-assert(t.ongoing[2].attention[1].kind == "destination_impassable", H.json(t.ongoing[2]))
+assert(t.ongoing[1].attention[1].kind == "destination_impassable", H.json(t.ongoing[1]))
 World.impassable["8,8"] = nil
 H.pending_moves[H.pm_key(103, 0)] = { x = 99, y = 99, pid = 0, unit_id = 103 }
 t = H.todo(0)
-assert(t.ongoing[2].attention[1].kind == "destination_gone", H.json(t.ongoing[2]))
+assert(t.ongoing[1].attention[1].kind == "destination_gone", H.json(t.ongoing[1]))
 """)
 
     def test_a_stalled_standing_move_still_needs_orders(self):
@@ -287,7 +286,7 @@ Units[3] = make_unit{ id = 103, type = 3, x = 5, y = 5, moves = 120, mission = 0
 local t = H.todo(0)
 assert(#t.units == 1 and t.units[1].id == 103 and t.units[1].stalled_mission == true, H.json(t.units))
 assert(t.units[1].note:find("re-issue order(to='unit', action='move')", 1, true) and t.units[1].going_to.x == 8, H.json(t.units[1]))
-assert(#t.ongoing == 1 and t.ongoing[1].id == 101, "the stalled settler is a decision, not ongoing")
+assert(t.ongoing == nil and t.automated.SCOUT[1] == 101, "the stalled settler is a decision, not ongoing")
 """)
 
     def test_ongoing_is_absent_when_nothing_is_moving(self):

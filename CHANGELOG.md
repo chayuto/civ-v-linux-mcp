@@ -24,6 +24,15 @@ Dates are the day the change was committed; "live tNNN" is the game turn it was 
   (450 bytes a row, 8%). A digest event row comes without `audience` (always the reader), and a notification without
   `ntype`, `d1` and `d2` (a hash and two raw engine words; the facts they name are on the row already), 3%. Nothing
   a seat acts on is gone. 2228 tests.
+- **A second cut, after three comparison runs (#191, runtime v341).** Each client alone on the Maya t242 board for
+  ten turns on v340: a finish reply cost Claude Code 2,342 tokens against 2,753 (-15%) and Codex 1,296 against
+  1,515 (-14%). What was left, per reply: sixteen status flags saying false (435 bytes, 8%), the rows of automated
+  units with nothing to look at (7%), and a refused end's `todo` beside the same `todo` in `status`. Now the reply
+  to a finish or a wait leaves out a flag that is false (absent means false; turn(action="status") keeps them all)
+  and an empty `pending_popups`; an automated unit with no `attention`, no stored destination and full health is
+  an id under its type in `todo.automated` and not a row (a held or dropped move makes it a row again);
+  `end_turn.todo` is the pointer "status.todo" when the status is in the same reply; `expiring_friendships` has
+  its hint in full on the first row only.
 
 ## 2.15.0 -- What a turn costs the model (2026-11-14)
 
