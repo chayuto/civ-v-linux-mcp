@@ -1,5 +1,5 @@
-# Resume here -- 2026-11-13 (night): main = 2.14.2 (runtime v339 unchanged, 9 tools, 2134 tests; tagged and released).
-**After 2.14.2, unreleased:** `server.json` for the official MCP Registry (valid per `mcp-publisher validate`; NOT
+# Resume here -- 2026-11-13 (night): main = 2.14.3 (runtime v339 unchanged, 9 tools, 2140 tests; tagged and released).
+**2.14.3, packaging only:** `server.json` for the official MCP Registry (valid per `mcp-publisher validate`; NOT
 published: needs the package on PyPI first, then the user's `mcp-publisher login github` + `publish`), a
 `civ-v-llm-harness` console script, `tests/test_server_json.py` (2140 tests). A release cut now bumps `server.json`
 too (two version fields; the test fails otherwise). Wheel gap: docs/PLAYBOOK.md, TOOL_REPLIES.md, shim and scripts are

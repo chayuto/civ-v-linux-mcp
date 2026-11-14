@@ -14,7 +14,9 @@ Two counters, on purpose (GitLab #26):
 
 Dates are the day the change was committed; "live tNNN" is the game turn it was checked on.
 
-## Unreleased
+## 2.14.3 -- An entry for the official MCP Registry, and a package for PyPI (2026-11-13)
+
+Runtime v339 (unchanged), 9 tools, 2140 tests. Packaging only.
 
 - **`server.json`, the entry for the official MCP Registry** (`io.github.ty-meador/civ-v-llm-harness`; valid per
   `mcp-publisher validate`, not yet published). It names a PyPI package started with `uvx`, the `--seat` argument and
