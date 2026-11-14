@@ -85,8 +85,15 @@ second question open, and the paper's design explicitly leaves tactics and diplo
 4. Write to the authors (the paper lists contact addresses) once 1 to 3 are known: whether a stock-rules,
    full-control track is something they would want beside theirs, and what a submission would have to contain.
 
-## Open questions (the user's)
+## Decided (the user, 2026-11-13)
 
-- Is the aim to appear in CivBench (way 3), to be comparable with it (ways 1, 2, 4), or to borrow its method?
-- Is Vox Populi in scope at all? Everything in this repository has been stock rules by choice.
-- How much unattended machine time for AI-only games is acceptable?
+- **Vox Populi is not in scope.** Way 3 is dropped.
+- **The project writes its own benchmark**, which can optionally be run with this harness. The reason is the
+  harness's own premise: the agent sits in a human seat, can do only what a human can do, sees only what a human
+  sees, and has to play anyway. That is a better foundation for a long-horizon benchmark than setting a strategy
+  for a rule-based AI to carry out.
+- What is borrowed from CivBench is method (progress instead of win/loss, ratings fitted over games, the stock AI
+  as the anchor), not code or data. The design sketch and its open problem, how to make scores comparable across
+  maps, civilizations and victory types, are in `docs/BENCHMARK.md`.
+
+Still open: how much unattended machine time for AI-only games is acceptable.

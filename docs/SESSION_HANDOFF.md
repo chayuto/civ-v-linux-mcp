@@ -4,8 +4,10 @@ issues #183-#190, one per stage; the plan is `docs/TOKEN_ACCOUNTING.md` (ROADMAP
 sees token counts: the feature joins each client's own usage records (Claude Code transcripts, Codex rollouts, the
 seat loop's Grok stream; shapes and traps read off this machine's files) to the call ledger, operator-side, and no
 seat reads the result. **Start with #183 and #184** (fixtures cut down to numbers, then `harness/usage/` readers):
-they need no game and no client. Three questions in the plan are the user's (spectator stage in or out, which game
-for the measured sessions, `--agent claude` on subscription or key). `docs/CIVBENCH.md` holds first thoughts on
+they need no game and no client. Decided the same night: the spectator stage (#189) comes after 2.15.0 and is off the milestone; `--agent claude`
+runs on the subscription; Vox Populi is out of scope and the project writes its own benchmark (sketch and the
+score-comparability proposal in `docs/BENCHMARK.md`, not yet agreed); the user starts other agents on request for
+#188, after #185 has landed. `docs/CIVBENCH.md` holds first thoughts on
 CivBench (arXiv 2604.07733): four ways to use the project there, what stands in the way, first steps, and three
 questions for the user; nothing in it is decided. `glab` is not installed on this machine: the GitLab REST API with
 `PRIVATE-TOKEN` from `.claude/.glpat` (python urllib) did the filing. Game state: as below (Maya game at t242).

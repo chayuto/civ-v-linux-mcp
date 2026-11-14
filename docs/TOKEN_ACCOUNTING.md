@@ -65,7 +65,7 @@ client says. `calls` are the civ5 calls that request issued. After the join a ro
 | 3 | The join (`harness/usage/join.py`): usage rows and ledger rows of one client in time order; each request gets the seat and game turn of the calls it issued, a request with no call takes the turn of the call before it; turns are grouped as `ledger_report.turns` groups them; requests before the first call are the bucket `fixed` (system prompt, tool listing, AGENTS.md) | on the fixtures every request lands in exactly one turn or in `fixed`, and the per-turn sums equal the session total |
 | 4 | The report: `scripts/ledger_report.py --usage <file or dir>` adds per turn `req`, `new in`, `cached`, `out`, `think` and cost; the footer adds totals per game and per client, tokens per turn, the cache share, the `fixed` share, and the measured tokens per reply byte for that client (what bytes / 4 should have been); `--json`; `harness/usage/prices.json` with a date and a source per model, an unknown model prints tokens and no cost | the report for the Codex night cycles reproduces each cycle's `turn.completed` total; a model missing from the price table prints no dollar figure anywhere |
 | 5 | What grows: per cycle, the context size at each request against the turn number; which `(tool, action)` replies brought in the most tokens; what a cycle length of N turns costs against N/2 (the seat loop's `--turns`) | `docs/measurements/` holds one table per client from a real session of ten turns or more, and `docs/NOTES.md` says tokens per turn early and late and the cycle length the numbers favour. Needs a live game |
-| 6 | The spectator page shows tokens per seat (this turn, this game) from the same rows, tailed like the ledger. Operator's view only; it may slip to the next milestone | the replay of a recorded session shows the same totals as the report |
+| 6 | The spectator page shows tokens per seat (this turn, this game) from the same rows, tailed like the ledger. Operator's view only. **After 2.15.0** (decided 2026-11-13; #189 is off the milestone) | the replay of a recorded session shows the same totals as the report |
 | 7 | Words and release: README bullet, ARCHITECTURE (where the rows come from), AGENT_INSTALL (where each client keeps its usage and how to point the report at it), LIMITATIONS (no counts from a client that writes none; cost is an estimate), CHANGELOG, 2.15.0 | the release row, test count and bullets are current; PyPI, both forges' Release objects, the registry republish is the user's |
 
 Order: 0 and 1 need no game and no client. 2 touches the seat loop, which a running night game uses: it deploys
@@ -79,8 +79,11 @@ between cycles like any Python edit. 3 and 4 are the feature. 5 is the first use
 - Any change to a tool reply's size. The report will say which replies cost most; trimming them is the usual
   `reply-size` issue, filed from what stage 5 finds.
 
-## Open questions (the user's)
+## Decided (the user, 2026-11-13)
 
-1. Is the spectator stage (6) wanted in 2.15.0 or after it?
-2. Stage 5 needs ten or more turns per client. Which game: the Maya save (t242), or a fresh hotseat with three seats?
-3. Should `--agent claude` in the seat loop run on the subscription (as Codex and Grok do) or on an API key?
+1. The spectator stage (6, #189) comes after 2.15.0; the issue is off the milestone.
+2. `--agent claude` in the seat loop runs on the subscription, as Codex and Grok do. Cost columns for all three are
+   therefore list-price estimates of tokens spent, never money paid.
+3. Stage 5's sessions are played by agents the user starts. The shape that serves this milestone and the benchmark
+   pilot at once (`docs/BENCHMARK.md`): every client plays the same seat from a copy of the same save, alone, under
+   the seat loop, after stage 2 has landed.

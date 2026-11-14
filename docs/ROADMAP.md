@@ -338,5 +338,5 @@ what each client writes are in `docs/TOKEN_ACCOUNTING.md`. In one sentence: the 
 so the client's own usage records are joined to the call ledger on the operator's side, and no seat reads the
 result. Nothing is built yet.
 
-First thoughts on CivBench (arXiv 2604.07733) and where this project could stand next to it: `docs/CIVBENCH.md`.
-Not a plan; it ends in questions.
+First thoughts on CivBench (arXiv 2604.07733): `docs/CIVBENCH.md`. Decided 2026-11-13: no Vox Populi, a benchmark of our own; the sketch is `docs/BENCHMARK.md`. #189 (spectator) is off the 2.15.0 milestone.
+
