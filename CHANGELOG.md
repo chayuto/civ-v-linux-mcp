@@ -14,6 +14,18 @@ Two counters, on purpose (GitLab #26):
 
 Dates are the day the change was committed; "live tNNN" is the game turn it was checked on.
 
+## 2.14.4 -- The playbook ships in the package (2026-11-13)
+
+Runtime v339 (unchanged), 9 tools, 2141 tests. Packaging only.
+
+- **An install from PyPI serves the playbook.** The 2.14.3 wheel left out `docs/PLAYBOOK.md` and
+  `docs/TOOL_REPLIES.md`, so `reference(book="playbook", ...)` read empty for anyone who had not cloned the
+  repository. `harness/docs/` now holds a symlink to each, `package-data` names them, and a build copies them in as
+  files (checked in a wheel built from the tag and installed alone); `harness/guide.py` reads the repository's
+  `docs/` when it is there and the packaged copy otherwise. Still not in the wheel: the shim and the launch scripts,
+  which a host gets from the repository (`docs/AGENT_INSTALL.md`).
+- 2.14.3 is published in the official MCP Registry as `io.github.ty-meador/civ-v-llm-harness`; this version follows.
+
 ## 2.14.3 -- An entry for the official MCP Registry, and a package for PyPI (2026-11-13)
 
 Runtime v339 (unchanged), 9 tools, 2140 tests. Packaging only.

@@ -11,7 +11,10 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-DOCS = Path(__file__).resolve().parent.parent / "docs"
+# The two files live in the repository's docs/ (where the README links them). harness/docs/ holds a symlink to
+# each, which a built sdist or wheel carries as the file itself, so an install from PyPI serves them too.
+_REPO_DOCS = Path(__file__).resolve().parent.parent / "docs"
+DOCS = _REPO_DOCS if (_REPO_DOCS / "PLAYBOOK.md").is_file() else Path(__file__).resolve().parent / "docs"
 PLAYBOOK = DOCS / "PLAYBOOK.md"
 TOOL_REPLIES = DOCS / "TOOL_REPLIES.md"
 

@@ -46,6 +46,16 @@ class ServerJson(unittest.TestCase):
         for var in pkg["environmentVariables"]:
             self.assertIn(var["name"], source)
 
+    def test_the_package_carries_the_playbook(self):
+        """An install from PyPI has no docs/ beside it: harness/docs/ links the two files the `reference` tool serves,
+        and package-data names them, so a build copies them in (2.14.3 went out without, the playbook read empty)."""
+        package_data = tomllib.loads((ROOT / "pyproject.toml").read_text())["tool"]["setuptools"]["package-data"]
+        self.assertIn("docs/*.md", package_data["harness"])
+        for name in ("PLAYBOOK.md", "TOOL_REPLIES.md"):
+            packaged = ROOT / "harness" / "docs" / name
+            self.assertTrue(packaged.is_symlink(), f"{packaged} must stay a link, never a second copy")
+            self.assertEqual(packaged.resolve(), ROOT / "docs" / name)
+
     def test_the_repository_is_the_gitlab_one(self):
         self.assertEqual(SERVER["repository"]["source"], "gitlab")
         self.assertEqual(SERVER["repository"]["url"], PROJECT["urls"]["Repository"])

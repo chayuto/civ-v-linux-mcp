@@ -1,4 +1,7 @@
-# Resume here -- 2026-11-13 (night): main = 2.14.3 (runtime v339 unchanged, 9 tools, 2140 tests; tagged and released).
+# Resume here -- 2026-11-13 (night): main = 2.14.4 (runtime v339 unchanged, 9 tools, 2141 tests; tagged, released, on PyPI).
+**2.14.4:** the wheel carries docs/PLAYBOOK.md and docs/TOOL_REPLIES.md (symlinks under `harness/docs/`, built in as
+files; never replace them with copies). 2.14.3 is in the official MCP Registry (the user published it); the user
+republishes each new version with `mcp-publisher publish` after the PyPI upload.
 **2.14.3, packaging only:** `server.json` for the official MCP Registry (valid per `mcp-publisher validate`; NOT
 published: needs the package on PyPI first, then the user's `mcp-publisher login github` + `publish`), a
 `civ-v-llm-harness` console script, `tests/test_server_json.py` (2140 tests). A release cut now bumps `server.json`
