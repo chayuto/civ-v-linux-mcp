@@ -1,4 +1,12 @@
-# Resume here -- 2026-11-14 (small hours): main = 2.14.4 + token accounting stages 0 to 3 (unreleased; runtime v339, 9 tools, 2191 tests).
+# Resume here -- 2026-11-14 (small hours): main = 2.14.4 + token accounting stages 0 to 4 (unreleased; runtime v339, 9 tools, 2208 tests).
+**#187 is done: the report.** `scripts/ledger_report.py <ledger> --usage <file or dir> [--usage ...] [--prices f] [--json]`
+adds `req`, `new in`, `cached`, `out`, `think`, `est $` per turn, the lines `fixed` / `unplaced` / `total`, and a
+footer per client and model (`harness/usage/report.py`, `prices.py`, `prices.json` with seven models dated
+2026-11-14). The night per request: `--usage logs/night --usage ~/.codex/sessions` (50 of 54 Codex cycles equal their
+`turn.completed`, the other 4 were killed). `grok-4.7-build` has no public list price, so Grok prints tokens and no
+dollars; add a row to `prices.json` when xAI lists it. **Next: #188** (stage 5, what grows: the user starts the
+agents, each alone on the same seat from a copy of the same save), then #190 words and release 2.15.0.
+What was written before stage 4:
 **#185 and #186 are done too.** The seat loop stamps its stream, frames each cycle, keeps the client's per-request
 record and runs `--agent claude`; `harness/usage/join.py` places every request in a game turn (`place`, `per_turn`,
 `place_cycle`; `fixed` before a session's first call, `unplaced` when the ledger does not cover it), grouped by

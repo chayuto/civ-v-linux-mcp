@@ -10,6 +10,9 @@ every client (`rows.row`), and `join` places each request in a game turn by matc
     placed, groups = join.place(usage, join.ledger_of(ledger_rows, "codex/gpt-6.1-sol"))
     join.per_turn(placed)                            # the same total, per turn, plus `fixed`
 
+`report` reads whole directories of those files for `scripts/ledger_report.py --usage`, and `prices` puts a list
+price on a row where the model has one (`prices.json`, dated; an estimate of tokens spent, never money paid).
+
 Nothing in this package is imported by the server, and nothing it produces reaches a tool reply: a seat never
 reads its own spend or another seat's. A reader takes counts, ids, tool names and times and no text.
 """

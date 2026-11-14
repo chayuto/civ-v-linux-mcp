@@ -43,6 +43,18 @@ Dates are the day the change was committed; "live tNNN" is the game turn it was 
   Live t242, one cycle of each agent: 9, 11 and 9 requests, each equal to the client's own total, and as many civ5
   calls on the rows as ledger rows under the cycle's label. Grok starts a seat folder's `.mcp.json` only in a
   folder it trusts. 2170 tests.
+- **Token accounting, stage 4: the report and the price table (#187).** `scripts/ledger_report.py --usage <file or
+  dir>` (repeatable) adds to every turn what it cost the model: `req`, `new in` (new input and cache writes),
+  `cached`, `out`, `think` and `est $`, then the lines `fixed`, `unplaced` and `total`; the turns with those two add
+  up to the total, which is the rows of every session read. The footer gives the total and each client and model
+  (tokens per turn, cache share, `fixed` share, new input tokens per reply byte against the 0.25 that bytes / 4
+  assumes) and holds each session against the client's own total; what a client counted beyond its rows is a line of
+  its own and in no sum. `harness/usage/report.py` takes seat-loop cycles, Codex rollouts and Claude Code
+  transcripts, finds an old Codex cycle's rollout by thread id among the paths given, and names a headerless
+  session's ledger label by the calls that match. `harness/usage/prices.json` lists seven models with a date and a
+  source each (`prices.py`); a model it does not list gets no dollar figure in the table, the footer or `--json`
+  (the Grok CLI's `grok-4.7-build` is on no public price list). The report groups turns per seat (`seat` in the
+  JSON). On this machine all 50 finished Codex night cycles reproduce their `turn.completed` total. 2208 tests.
 - **Token accounting, stage 3: the join (#186).** `harness/usage/join.py` says which game turn a model request
   belongs to. `place(usage, ledger)` matches every civ5 call of a usage row to a call ledger row of the same client
   -- same `(tool, action)`, in order, begun after the request was complete and (outside Codex, whose scripts

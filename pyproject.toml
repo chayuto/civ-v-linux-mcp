@@ -24,7 +24,7 @@ include = ["harness*"]
 # The injected Lua ships with the package: the runtime fragments (harness/runtime_source.py MANIFEST), the
 # GenericPopup shim and audit.lua. So do the two documents the `reference` tool serves (harness/guide.py):
 # harness/docs/ holds symlinks to docs/PLAYBOOK.md and docs/TOOL_REPLIES.md, built into the package as files.
-harness = ["lua/*.lua", "lua/runtime/*.lua", "docs/*.md"]
+harness = ["lua/*.lua", "lua/runtime/*.lua", "docs/*.md", "usage/prices.json"]
 
 [dependency-groups]
 # The regression suite: lupa / liblua5.4 run the shipped Lua (harness/lua/runtime/) against fake game objects;

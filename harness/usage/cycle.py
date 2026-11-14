@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Iterable
+from typing import Callable, Iterable
 
 from harness.usage import claude_code, codex, grok, rows
 
@@ -43,9 +43,24 @@ def _lines(path: Path) -> list[str]:
         return fh.readlines()
 
 
-def read(stream: Path | str, server: str = "civ5") -> tuple[dict, list[dict]]:
+def session_id(lines: Iterable[str], head: dict) -> str | None:
+    """The client's id for the cycle's session: the header's, else the thread a codex exec stream opened."""
+    if head.get("session"):
+        return str(head["session"])
+    found = None
+    for o in rows.parsed(lines):
+        if o.get("type") == "thread.started" and o.get("thread_id"):
+            found = str(o["thread_id"])
+    return found
+
+
+def read(stream: Path | str, server: str = "civ5",
+         find: Callable[[str, str | None], Path | None] | None = None) -> tuple[dict, list[dict]]:
     """(header, usage rows) of one cycle. A stream with no header is read by its file name (`grok-c12.jsonl`);
-    a codex or claude cycle whose record was not kept has no rows, and its header has no `usage_file`."""
+    a codex or claude cycle whose record was not kept has no rows, and its header has no `usage_file`, unless
+    `find(agent, session id)` knows where the client's own copy is (a cycle from before the loop kept one,
+    with the operator pointing the report at the client's directory). `usage_path` in the header names the
+    record the rows came from when that is not the stream."""
     stream = Path(stream)
     lines = _lines(stream)
     head = header(lines)
@@ -56,9 +71,12 @@ def read(stream: Path | str, server: str = "civ5") -> tuple[dict, list[dict]]:
     if agent:
         head.setdefault("agent", agent)
     kept = stream.with_name(head["usage_file"]) if head.get("usage_file") else None
+    if agent in ("codex", "claude") and (kept is None or not kept.is_file()):
+        kept = find(agent, session_id(lines, head)) if find is not None else None
     if agent == "grok":
         out = grok.read(lines, server)
     elif agent in ("codex", "claude") and kept is not None and kept.is_file():
+        head["usage_path"] = str(kept)
         out = (codex if agent == "codex" else claude_code).read(_lines(kept), server)
     else:
         out = []
