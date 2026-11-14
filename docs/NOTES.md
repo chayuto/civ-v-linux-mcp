@@ -3706,3 +3706,14 @@ description offers that word, fell through to the full read.
 changed since the seat last read it, was not built: the base it would be read against lives in the client's
 context, which a compaction or a new cycle drops, and the server cannot see that. Not read back on a client yet;
 the next bench run is the check that no seat asks for `detail="full"` after the default.
+
+### The relationship on a leader's screen (#191, 2026-11-14 night)
+
+The 27 leader screens of the three v341 bench runs (`logs/bench191/v341`) carry a `relationship` of 1,340 bytes on
+average: `opinion` 280, `history` 250 (its last row is the screen's `speech` again), `discuss` 150 (six booleans),
+the rest twenty scalar keys of which nine to eleven say false or zero and three (`ok`, `player`, `leader`) repeat
+the screen. `relationship_inline` (`harness/game_parts/diplomacy.py`, applied in `Game.discussion()`) leaves out
+what is false, zero or said by the screen, makes `discuss` a list and drops a history row's `text` when it equals
+the speech: 830 bytes, 38% less, the same on each client. `state` stays on the history row because
+`discussion_answers` finds a proposed friendship by it. `Game.relationship()` and `state(what="civ",
+view="summary")` are untouched. Not read back on a playing client yet.

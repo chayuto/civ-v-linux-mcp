@@ -48,6 +48,15 @@ Dates are the day the change was committed; "live tNNN" is the game turn it was 
   was; `detail="compact"` is the summary less its remaining prose (5.2 KB and 12.2 KB). The library's own
   `Game.league_status()` still reads it whole. Live on the Maya t242 board through a stdio server: 18.8 KB
   full, 10.5 KB by default, 6.4 KB compact. Not yet read back on a playing client. 2244 tests.
+- **A leader's screen carries a leaner relationship (#191; Python only, runtime v341 unchanged).** The
+  `relationship` inside a discussion (in `question()`, in a finish or wait reply's `status.discussion`, in an
+  answer's `next`) was 1.2 KB a screen, 8% of a finish reply: nine flags saying false, the leader and player the
+  screen already names, six `discuss` booleans, and the leader's speech a second time as the last `history` row.
+  Now a flag that is false and a counter at zero are absent, `discuss` is the list of asks open to us, and a
+  `history` row whose words are the screen's `speech` keeps its `turn` and `state` only. What a seat answers from
+  (`approach_guess`, `opinion`, the embassy / borders / agreement flags that are true, a friendship's turns left)
+  is as it was; `state(what="civ", id, view="summary")` is the whole read. On the 27 leader screens of the three
+  v341 bench runs the block is 38% smaller (1,340 to 830 bytes). 2256 tests.
 
 ## 2.15.0 -- What a turn costs the model (2026-11-14)
 

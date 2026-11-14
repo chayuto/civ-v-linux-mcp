@@ -1,4 +1,13 @@
-# Resume here -- 2026-11-14 (evening): main = 2.15.0 + two cuts of the finish reply + the league summary (unreleased; runtime v341, 9 tools, 2244 tests).
+# Resume here -- 2026-11-14 (night): main = 2.15.0 + two cuts of the finish reply + the league summary + the lean relationship (unreleased; runtime v341, 9 tools, 2256 tests).
+**#191, the relationship on a leader's screen.** `Game.discussion()` passes its `relationship` through
+`relationship_inline` (`harness/game_parts/diplomacy.py`, Python only): no false flag, no zero counter, no `ok` /
+`player` / `leader`, `discuss` as a list, no `text` on a history row that repeats `speech`. 38% smaller on the 27
+leader screens of the v341 bench runs (1,340 to 830 bytes). CHANGELOG Unreleased, PLAYBOOK "Leader screens",
+`docs/NOTES.md` last section. **Not read back on a playing client**, like the league summary: one bench run on the
+t242 board (a friendship offer at t243, a league session at t243) checks both. **#191 stays open** for the digest's
+events (15% of a finish reply), the last item. The game is on the t242 board, untouched this session.
+
+# Previous -- 2026-11-14 (evening): main = 2.15.0 + two cuts of the finish reply + the league summary (unreleased; runtime v341, 9 tools, 2244 tests).
 **#191, the league read.** `state(what="league")` is `league_summary` by default (`harness/game_parts/diplomacy.py`,
 Python only): 13.7 to 9.3 KB in a session, 29.5 to 17.5 KB between sessions on the bench runs' nine replies;
 `detail="full"` is the old read, `detail="compact"` the summary less its prose, and `detail="summary"` no longer

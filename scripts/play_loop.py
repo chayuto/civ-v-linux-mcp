@@ -264,7 +264,7 @@ def decline_diplomacy(g: Game, seat: int) -> str:
     except Exception as e:  # never let a read stop the loop
         return f"unreadable: {e}"
     what = d.get("screen") or "discussion"
-    leader = (d.get("relationship") or {}).get("leader") or d.get("player")
+    leader = d.get("leader") or d.get("player")
     try:
         if what == "trade":
             g.refuse_deal(seat)

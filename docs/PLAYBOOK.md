@@ -305,7 +305,8 @@ and sends once more.
 ## Leader screens and diplomacy
 
 - When `discussion_pending` is true, `question()` gives the leader, their speech, the response buttons as
-  `answers` rows and, on a trade screen, the deal. Answer with exactly one of `answer(choice=<button id>)`,
+  `answers` rows and, on a trade screen, the deal. The standing it carries is the short one: a flag that is absent is
+  false, `discuss` lists the asks open to you, `state(what="civ", id, view="summary")` is the whole read. Answer with exactly one of `answer(choice=<button id>)`,
   `answer(choice="accept")`, `answer(choice="refuse")`, or `answer(choice="leave")` (only when there are no
   buttons and no deal). The gate's rows say which. Several leaders can be queued at one turn start (three at
   once has happened): the answer to one then carries `still_pending: true`, `next` (the next leader's screen,

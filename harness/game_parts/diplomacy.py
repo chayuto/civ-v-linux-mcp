@@ -140,6 +140,39 @@ def league_summary(r):
     return out
 
 
+#: What the leader screen's own reply says beside the relationship: the same fact twice is dropped from the inline one.
+_SCREEN_SAYS = ("ok", "player", "leader")
+
+
+def relationship_inline(rel, speech=""):
+    """The relationship a leader's screen carries, without what says nothing or says it twice (#191: 1.2 KB of
+    every reply with a leader in it, 8% of a finish reply). Gone: `ok`, `player` and `leader` (the screen names
+    them), a flag that is false, a counter at zero, a value the engine did not give. `discuss` is the list of the
+    asks open to us instead of six booleans, and a `history` row loses its `text` when the screen's `speech` is the
+    same words (its `state` stays: it says what the leader is asking). Absent means false or zero; the whole read
+    is state(what="civ", id, view="summary"). A failed read comes back as it is."""
+    if not isinstance(rel, dict) or not rel.get("ok"):
+        return rel
+    out = {}
+    for k, v in rel.items():
+        if k in _SCREEN_SAYS or v is None or v is False or v == [] or v == {}:
+            continue
+        if isinstance(v, (int, float)) and not isinstance(v, bool) and v == 0:
+            continue
+        out[k] = v
+    if isinstance(rel.get("discuss"), dict):
+        asks = [k for k, v in rel["discuss"].items() if v]
+        out.pop("discuss", None)
+        if asks:
+            out["discuss"] = sorted(asks)
+    if isinstance(rel.get("history"), list):
+        out["history"] = [{k: v for k, v in h.items() if not (k == "text" and speech and v == speech)}
+                          if isinstance(h, dict) else h for h in rel["history"]]
+        if not out["history"]:
+            del out["history"]
+    return out
+
+
 class DiplomacyMixin:
     """Diplomacy: relationships, war and peace, leader discussions, city-state actions and gifts, the World Congress.
 
@@ -344,6 +377,7 @@ class DiplomacyMixin:
                 rel.pop("relations", None)
                 if rel.get("history"):
                     rel["history"] = rel["history"][-2:]
+                out["relationship"] = relationship_inline(rel, out.get("speech") or "")
         if trade_up and out.get("deal", {}).get("renewal"):
             out["renewal"] = True
         return out
