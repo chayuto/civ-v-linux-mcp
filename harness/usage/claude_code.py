@@ -62,9 +62,21 @@ def read(lines: Iterable[str], server: str = "civ5") -> list[dict]:
 def session_total(lines: Iterable[str]) -> dict[str, dict[str, int]]:
     """What the client itself says the session cost, per model, from its last `cost-state` row; {} when the
     session has not written one (it is still open, or it crashed). `inputTokens` there is the full-price part."""
+    return _model_usage(lines, "cost-state")
+
+
+def stream_total(lines: Iterable[str]) -> dict[str, dict[str, int]]:
+    """The same total from a `claude -p --output-format stream-json` stream (what the seat loop keeps): the
+    `modelUsage` of its last row, `result`; {} for a stream cut off before it. The stream is no source of rows:
+    an `assistant` row there carries the usage of the request's first frame, so its output count is short (24
+    where the transcript, written when the request is complete, says 33). The loop keeps the transcript."""
+    return _model_usage(lines, "result")
+
+
+def _model_usage(lines: Iterable[str], kind: str) -> dict[str, dict[str, int]]:
     last: Any = None
     for o in rows.parsed(lines):
-        if o.get("type") == "cost-state" and isinstance(o.get("modelUsage"), dict):
+        if o.get("type") == kind and isinstance(o.get("modelUsage"), dict):
             last = o["modelUsage"]
     out = {}
     for model, u in (last or {}).items():

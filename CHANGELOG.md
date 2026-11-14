@@ -29,6 +29,20 @@ Dates are the day the change was committed; "live tNNN" is the game turn it was 
   Checked against this machine's files: 502 Grok cycles and 50 Codex cycles add up to the client's total exactly;
   14 of 24 Claude Code sessions do, and in the other 10 the client's total is higher by requests it answered
   without keeping an `assistant` row (an away summary, a retry at a usage limit). 2158 tests.
+- **Token accounting, stage 2: the seat loop keeps what the join needs (#185).** `scripts/llm_seat_loop.py` stamps
+  every JSON line of the CLI's stream with its arrival time (`t`, first key, the line's own bytes untouched; Grok's
+  stream had no time at all), opens each cycle with a `seat_loop.cycle` row (agent, model, effort, seat, cycle,
+  turns, start, the ledger's client label) and closes it with `seat_loop.cycle_end` (start, end, rc, killed,
+  usage_file), and copies the client's own per-request record beside the stream when the cycle ends: the Codex
+  rollout (the exec stream has one total and no request) and the Claude transcript (a `stream-json` assistant row
+  carries the usage of the request's first frame: output 24 where the finished request wrote 33). New
+  `--agent claude`: `claude -p` with the seat's `.mcp.json` as its only server, no user or project settings, no
+  skills, no Bash, no auto-memory. `harness/usage/cycle.py` reads one cycle from the log directory alone (`read`:
+  header and rows with `seat`, `cycle`, `label`; `own_total`), and `claude_code.stream_total` reads the stream's
+  `result` row. The loop's prompt speaks the nine tools (it still named `finish_turn`, `set_seat` and `lua`).
+  Live t242, one cycle of each agent: 9, 11 and 9 requests, each equal to the client's own total, and as many civ5
+  calls on the rows as ledger rows under the cycle's label. Grok starts a seat folder's `.mcp.json` only in a
+  folder it trusts. 2170 tests.
 
 ## 2.14.4 -- The playbook ships in the package (2026-11-13)
 
