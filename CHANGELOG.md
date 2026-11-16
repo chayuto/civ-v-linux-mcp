@@ -14,6 +14,31 @@ Two counters, on purpose (GitLab #26):
 
 Dates are the day the change was committed; "live tNNN" is the game turn it was checked on.
 
+## Unreleased
+
+- **The spectator page shows tokens per seat (2026-11-15; token accounting stage 6, #189).**
+  `python -m harness.spectator --ledger <ledger> --usage <file or dir>` (repeatable, the paths
+  `scripts/ledger_report.py --usage` takes) adds a Tokens section to the page: per seat the requests, tokens
+  read, the share read from the cache, tokens written and the list-price estimate, for the seat's latest turn
+  and for the game. Nothing is counted twice over: `harness/spectator/usage_watch.py` runs the report's own
+  steps (`report.read`, `place`, `summary`) whenever a usage file or the ledger changed (a `stat` per file
+  otherwise; 70 ms for one session's directory) and pushes the whole count as one `usage` event that replaces
+  the one before, so a request whose call is still running moves to its own turn once the ledger has the row.
+  The event is recorded, so a replay shows the counts with no usage file at hand, and its last one is what the
+  report prints: the stage's test (`tests/test_spectator.py`). Live on the Maya t242 board against the three
+  bench runs of 433be54: 165 requests, 13,780,657 read, 30,900 written on the page, in `/state`, in the
+  replayed recording and in the report; scrubbed forward and back in Chrome. Operator's view: no seat reads
+  the page, and the event holds counts and labels, never a word of a transcript. "This game" is what the
+  paths hold, so name the files of the game being watched; a seat several clients played is one line, with a
+  dollar figure only where each of their models has a price. Python and the page only; runtime v341.
+- **The report prints a line per seat** (`usage seat 0 [codex/gpt-6.1-sol]: ...`, `usage on no seat` for a
+  session the ledger does not cover), `summary()["seats"]`: a seat's turns and the `fixed` and `unplaced`
+  requests of the sessions that played it, adding up to the total. It is the line the page's "game" row repeats.
+- **Fixed: a cycle counted twice.** `--usage logs/night --usage ~/.codex/sessions` read a seat-loop cycle from
+  the record the loop kept and again from the client's own rollout of the same session (43 requests became 86
+  on the Codex bench run). The client's file of a session a cycle already gave is now passed over. Both paths
+  together are how a cycle that is still running is read per request, which the live page needs.
+
 ## 2.16.0 -- A turn's replies say it once (2026-11-15)
 
 Runtime v341, 9 tools, 2260 tests. #191, closed: the replies stage 5 measured as the largest (the end of a turn,

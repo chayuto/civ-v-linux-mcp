@@ -336,7 +336,7 @@ the long version.
 ```bash
 sudo apt install lua5.4 liblua5.4-0   # luac for the runtime lint, liblua for the Lua tests
 uv sync --group dev
-scripts/check.sh            # 2260 tests: the shipped Lua under lupa, the Python layer against fake bridges; no game needed
+scripts/check.sh            # 2272 tests: the shipped Lua under lupa, the Python layer against fake bridges; no game needed
 ```
 
 `CIV5_CALL_LOG=/path/calls.jsonl` in the server's environment writes one line per tool call (bytes, trips,
@@ -349,7 +349,9 @@ one document per client and model on what grows over a session. Off by default; 
 `python -m harness.spectator --ledger /path/calls.jsonl` serves a live, read-only page (`web/viz/`, d3) of the
 game and the seats' attention: the whole map in greyscale, every plot a tool reply handed a model pulsing once in
 the seat's colour, acts staying painted for the turn, a ghost of the previous seat, a heatmap, and an Observer /
-Seat N switch. `--record` / `--replay` work without a game. See `docs/VISUALIZATION.md`.
+Seat N switch. `--record` / `--replay` work without a game. `--usage <dir>` adds tokens per seat, this turn and
+this game, counted by the report's own code from the same usage records (the operator's view; no seat reads the
+page). See `docs/VISUALIZATION.md`.
 
 The Lua runtime is one file per game domain under `harness/lua/runtime/` (its `README.md` says which file
 owns what and how to add one); `harness/runtime_source.py` lists the load order and assembles what is injected.

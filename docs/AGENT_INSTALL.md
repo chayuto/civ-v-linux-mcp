@@ -349,10 +349,14 @@ share a seat), and know where the client keeps its record:
 ```bash
 .venv/bin/python scripts/ledger_report.py logs/calls.jsonl --usage ~/.codex/sessions --usage logs/night
 .venv/bin/python scripts/usage_measure.py logs/calls.jsonl --usage logs/night --out docs/measurements
+.venv/bin/python -m harness.spectator --ledger logs/calls.jsonl --usage logs/night --usage ~/.codex/sessions
 ```
 
 `--usage` repeats and takes a file or a directory; a session with no civ5 call is left out. The first prints
-tokens and a list-price estimate per game turn, the second what grows over a session of ten turns or more.
+tokens and a list-price estimate per game turn, the second what grows over a session of ten turns or more, the
+third shows tokens per seat on the spectator page while the game runs (the report's own counts; a seat-loop
+cycle of Codex or Claude that is still running is counted per request only with the client's directory among
+the paths, as here).
 This is for the human who runs the game: do not read the result back to a playing seat, and never paste a
 transcript anywhere (the readers take numbers, ids, tool names and times out of it and nothing else). A model
 missing from `harness/usage/prices.json` prints tokens without dollars; add its row with the date and the page

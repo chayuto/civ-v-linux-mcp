@@ -1,5 +1,7 @@
 """The spectator behind the live visualization (harness/spectator, docs/VISUALIZATION.md): the ledger tail, the
-notebook watcher, the feed's ring/state/recording/replay, the live poller's cadence, and the SSE server."""
+notebook watcher, the usage watcher (tokens per seat: the page counts what the report counts, and a replayed
+recording ends on the report's totals; docs/TOKEN_ACCOUNTING.md stage 6, #189), the feed's
+ring/state/recording/replay, the live poller's cadence, and the SSE server."""
 from __future__ import annotations
 
 import contextlib
@@ -8,15 +10,59 @@ import io
 import json
 import os
 import pathlib
+import shutil
 import socket
 import struct
+import sys
 import tempfile
 import threading
 import time
 import unittest
 
 from harness.spectator import feed as F
-from harness.spectator import ledger_tail, notebook_watch, server
+from harness.spectator import ledger_tail, notebook_watch, server, usage_watch
+from harness.usage import prices, report
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "scripts"))
+import ledger_report as R  # noqa: E402
+
+CYCLES = ROOT / "tests" / "fixtures" / "usage" / "cycles"
+COUNT_KEYS = ("requests", "new_in", "cache_read", "cache_write", "out", "reasoning")
+
+
+def two_seats(d: str) -> tuple[pathlib.Path, pathlib.Path]:
+    """The three fixture cycles as a log directory and their ledger, with Grok's cycle moved to seat 1 (the
+    fixture's three clients each played seat 0). Returns (log directory, ledger)."""
+    logs = pathlib.Path(d) / "logs"
+    logs.mkdir()
+    for p in CYCLES.glob("*.jsonl"):
+        lines = p.read_text(encoding="utf-8").splitlines()
+        if p.name in ("calls.jsonl", "grok-c1.jsonl"):
+            out = []
+            for line in lines:
+                o = json.loads(line)
+                if o.get("client") == "grok/grok-4.6" and "seat" in o:
+                    o["seat"] = 1
+                out.append(json.dumps(o, separators=(",", ":")))
+            lines = out
+        target = pathlib.Path(d) / "calls.jsonl" if p.name == "calls.jsonl" else logs / p.name
+        target.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return logs, pathlib.Path(d) / "calls.jsonl"
+
+
+def reported(paths: list, ledger: pathlib.Path) -> tuple[dict, list[dict]]:
+    """What `scripts/ledger_report.py <ledger> --usage <paths>` prints from, by the script's own steps:
+    (the usage summary, the report's turn groups)."""
+    rows = R.load(str(ledger), None)
+    groups = [g for _, g in R.grouped(rows)]
+    sessions, _ = report.read(paths)
+    report.place(sessions, rows)
+    return report.summary(sessions, groups, prices.load()), groups
+
+
+def tally(t: dict) -> dict:
+    return {k: t[k] for k in (*COUNT_KEYS, "cost") if k in t}
 
 
 class LedgerTailTests(unittest.TestCase):
@@ -93,6 +139,114 @@ class NotebookWatchTests(unittest.TestCase):
     def test_bad_json_is_skipped(self):
         (self.dir / "g-seat0.json").write_text("{not json", encoding="utf-8")
         self.assertEqual(notebook_watch.NotebookWatch(str(self.dir)).poll(), [])
+
+
+class UsageWatchTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.logs, self.ledger = two_seats(self.tmp.name)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_the_page_counts_what_the_report_counts(self):
+        watch = usage_watch.UsageWatch([self.logs], self.ledger)
+        data = watch.poll()
+        u, groups = reported([self.logs], self.ledger)
+        self.assertEqual(data["total"], tally(u["total"]))
+        self.assertEqual([s["seat"] for s in data["seats"]], [0, 1])
+        self.assertEqual([s["game"] for s in data["seats"]], [tally(s) for s in u["seats"]])
+        for k in COUNT_KEYS:                                 # nothing dropped, nothing twice
+            self.assertEqual(sum(s["game"][k] for s in data["seats"]), data["total"][k], k)
+        for s in data["seats"]:
+            latest = max(i for i, g in enumerate(groups) if g["seat"] == s["seat"])
+            self.assertEqual(s["turn"], groups[latest]["turn"])
+            self.assertEqual(s["this_turn"], tally(u["turns"][latest]))
+            self.assertLess(s["this_turn"]["requests"], s["game"]["requests"])
+        self.assertEqual(data["seats"][1]["clients"], [{"client": "grok/grok-4.6", "model": "grok-4.6-build"}])
+        self.assertIn("cost", data["seats"][0]["game"])
+        self.assertNotIn("cost", data["seats"][1]["game"], "no list price, no dollar figure")
+        self.assertNotIn("cost", data["total"])
+        self.assertEqual(data["prices"]["unlisted"], ["grok-4.6-build"])
+        self.assertIsNone(watch.poll(), "nothing changed: nothing read, nothing said")
+
+    def test_the_event_holds_counts_and_labels_and_no_text(self):
+        data = usage_watch.UsageWatch([self.logs], self.ledger).poll()
+        self.assertEqual(set(data), {"seats", "total", "prices"})
+        for s in data["seats"]:
+            self.assertEqual(set(s), {"seat", "clients", "game", "turn", "this_turn"})
+            for t in (s["game"], s["this_turn"]):
+                self.assertLessEqual(set(t), {*COUNT_KEYS, "cost"})
+                self.assertTrue(all(isinstance(v, (int, float)) for v in t.values()))
+            for c in s["clients"]:
+                self.assertEqual(set(c), {"client", "model"})
+
+    def test_a_session_is_followed_as_it_grows(self):
+        whole = usage_watch.UsageWatch([self.logs], self.ledger).poll()
+        stream = self.logs / "grok-c1.jsonl"
+        lines, calls = stream.read_text().splitlines(True), self.ledger.read_text().splitlines(True)
+        mine = [i for i, line in enumerate(calls) if '"grok/grok-4.6"' in line]
+        half = len(lines) // 2
+        stream.write_text("".join(lines[:half]))                       # the cycle is running: no end row yet
+        self.ledger.write_text("".join(c for i, c in enumerate(calls) if i not in mine[2:]))
+        watch = usage_watch.UsageWatch([self.logs], self.ledger)
+        early = watch.poll()
+        seat1 = {s["seat"]: s for s in early["seats"]}[1]
+        self.assertLess(seat1["game"]["requests"], whole["seats"][1]["game"]["requests"])
+        self.assertGreater(seat1["game"]["requests"], 0)
+        self.assertEqual(early["seats"][0], whole["seats"][0], "the other seat's count does not move")
+        self.assertIsNone(watch.poll())
+        with stream.open("a") as f:
+            f.write("".join(lines[half:]))
+        self.ledger.write_text("".join(calls))
+        self.assertEqual(watch.poll(), whole)
+        self.assertIsNone(watch.poll())
+
+    def test_a_running_codex_or_claude_cycle_is_counted_from_the_clients_own_file(self):
+        """The loop copies the client's record beside the stream when the cycle ends. Until then the stream
+        has no request in it: the page has the cycle's count only with the client's directory among the paths,
+        and the same count once the cycle has ended and both copies are there."""
+        table = prices.load()
+        for agent, kept, own in (("codex", "rollout", "rollout-2026-11-13T22-55-48-{}.jsonl"),
+                                 ("claude", "transcript", "{}.jsonl")):
+            with self.subTest(agent=agent), tempfile.TemporaryDirectory() as d:
+                logs, home = pathlib.Path(d) / "logs", pathlib.Path(d) / "home"
+                logs.mkdir()
+                home.mkdir()
+                lines = (CYCLES / f"{agent}-c1.jsonl").read_text().splitlines(True)
+                session = json.loads(lines[0]).get("session") or next(
+                    json.loads(line)["thread_id"] for line in lines if '"thread.started"' in line)
+                (logs / f"{agent}-c1.jsonl").write_text("".join(x for x in lines if '"seat_loop.cycle_end"' not in x))
+                shutil.copy(CYCLES / f"{agent}-c1.{kept}.jsonl", home / own.format(session))
+                self.assertIsNone(usage_watch.UsageWatch([logs], self.ledger).poll())
+                running = usage_watch.UsageWatch([logs, home], self.ledger).poll()
+                self.assertEqual([s["seat"] for s in running["seats"]], [0])
+                shutil.copy(CYCLES / f"{agent}-c1.jsonl", logs)                  # the cycle ends: the loop keeps its copy
+                shutil.copy(CYCLES / f"{agent}-c1.{kept}.jsonl", logs)
+                ended = usage_watch.read(usage_watch.UsageWatch([logs, home], self.ledger).pool(), self.ledger, table)
+                self.assertEqual(ended["total"], running["total"])
+                self.assertGreater(ended["total"]["requests"], 5)
+
+    def test_paths_with_no_session_say_nothing_and_the_ledger_and_the_recording_are_no_usage_files(self):
+        empty = pathlib.Path(self.tmp.name) / "empty"
+        watch = usage_watch.UsageWatch([empty, pathlib.Path(self.tmp.name) / "not-there.jsonl"], self.ledger)
+        self.assertIsNone(watch.poll())
+        empty.mkdir()
+        (empty / "other.jsonl").write_text('{"type":"something"}\n')
+        self.assertIsNone(watch.poll())
+        self.assertIsNone(watch.last)
+        record = self.logs / "spectate.jsonl"
+        record.write_text('{"seq":1,"t":1.0,"type":"status","data":{}}\n')
+        shutil.copy(self.ledger, self.logs / "calls.jsonl")
+        inside = usage_watch.UsageWatch([self.logs], self.logs / "calls.jsonl", exclude=[record, None])
+        self.assertEqual(sorted(p.name for p in inside.pool()),
+                         sorted(p.name for p in CYCLES.glob("*.jsonl") if p.name != "calls.jsonl"))
+
+    def test_a_ledger_line_still_being_written_is_passed_over(self):
+        with self.ledger.open("a") as f:
+            f.write('{"t":1794631999.0,"seat":0,"tool":"sta')
+        self.assertEqual(len(usage_watch.ledger_rows(self.ledger)), len(self.ledger.read_text().splitlines()) - 1)
+        self.assertEqual(usage_watch.ledger_rows(pathlib.Path(self.tmp.name) / "no-ledger.jsonl"), [])
 
 
 class FeedTests(unittest.TestCase):
@@ -310,6 +464,49 @@ class LiveTests(unittest.TestCase):
         live.step_notes()
         nb = feed.state()["notebooks"]
         self.assertEqual(nb[1]["notes"][0]["text"], "hi")
+
+    def test_usage_flows_and_a_replayed_recording_ends_on_the_reports_totals(self):
+        """Stage 6's test (#189): the replay of a recorded session shows the same totals as the report."""
+        base = os.path.join(self.tmp.name, "u")
+        os.mkdir(base)
+        logs, ledger = two_seats(base)
+        record = os.path.join(self.tmp.name, "spectate.jsonl")
+        feed, client = F.Feed(record_path=record), FakeClient()
+        self.assertIsNone(feed.state()["usage"])
+        watch = usage_watch.UsageWatch([logs], ledger, exclude=[record])
+        live = F.Live(feed, client, str(ledger), self.notes, sleep=lambda s: None, usage=watch, usage_every=5.0)
+        live.tick(1000.0)
+        live.tick(1001.0)                                    # not due
+        live.tick(1006.0)                                    # due, and nothing changed
+        pushed = [e for e in feed.since(0) if e["type"] == "usage"]
+        self.assertEqual(len(pushed), 1)
+        self.assertEqual(feed.state()["usage"], pushed[0]["data"])
+        # a request lands in the client's file: the next poll's event replaces the one before
+        with (logs / "grok-c1.jsonl").open("a") as f:
+            f.write(json.dumps({"type": "usage", "t": 1794632999.0, "usage": {
+                "input_tokens": 100, "output_tokens": 7, "cache_read_input_tokens": 50,
+                "cache_creation_input_tokens": 0, "reasoning_tokens": 0}}) + "\n")
+        live.tick(1012.0)
+        self.assertEqual(len([e for e in feed.since(0) if e["type"] == "usage"]), 2)
+        u, _ = reported([logs], ledger)
+        again = F.Feed(mode="replay")
+        F.replay(record, again, speed=0)
+        shown = again.state()["usage"]
+        self.assertEqual(shown["total"], tally(u["total"]))
+        self.assertEqual([(s["seat"], s["game"]) for s in shown["seats"]], [(s["seat"], tally(s)) for s in u["seats"]])
+        self.assertGreater(shown["total"]["requests"], pushed[0]["data"]["total"]["requests"])
+
+    def test_a_usage_read_that_fails_is_a_status_not_a_crash(self):
+        class Gone:
+            def poll(self):
+                raise OSError("usage file gone")
+
+        feed = F.Feed()
+        live = F.Live(feed, FakeClient(), self.ledger, self.notes, sleep=lambda s: None, usage=Gone())
+        live.step_usage()
+        st = feed.since(0)
+        self.assertEqual((st[0]["type"], st[0]["data"]["source"]), ("status", "usage"))
+        self.assertIn("usage file gone", st[0]["data"]["err"])
 
 
 class ServerTests(unittest.TestCase):

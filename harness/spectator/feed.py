@@ -2,7 +2,8 @@
 
 Event shape: `{"seq": n, "t": unix_time, "type": ..., "data": {...}}`. Types: `hello` (the map and how to draw it),
 `snapshot` (snapshot.py), `call` (one ledger row), `event` (one runtime event with its audience), `notebook` (one
-seat's notes/assignments/orders), `status` (the spectator's own health). The ring keeps the last RING events for
+seat's notes/assignments/orders), `usage` (tokens per seat, usage_watch.py; each one replaces the one before),
+`status` (the spectator's own health). The ring keeps the last RING events for
 SSE resumes; `state()` is what a page that just opened needs to draw the world at once.
 
 The recording (`--record` while live, the file itself under `--replay`) is also what the page scrubs through:
@@ -48,6 +49,7 @@ class Feed:
         self.hello: dict | None = None
         self.snapshot: dict | None = None
         self.notebooks: dict[int, dict] = {}
+        self.usage: dict | None = None
         self.calls: list[dict] = []
         self.events: list[dict] = []
 
@@ -78,6 +80,8 @@ class Feed:
             self.snapshot = d
         elif t == "notebook" and isinstance(d.get("seat"), int):
             self.notebooks[d["seat"]] = d
+        elif t == "usage":
+            self.usage = d
         elif t == "call":
             self.calls.append(ev)
             del self.calls[:-RECENT_CALLS]
@@ -99,7 +103,8 @@ class Feed:
         with self.cond:
             return {"seq": self.seq, "mode": self.mode, "recording": bool(self.recording_path),
                     "hello": self.hello, "snapshot": self.snapshot,
-                    "notebooks": dict(self.notebooks), "calls": list(self.calls), "events": list(self.events)}
+                    "notebooks": dict(self.notebooks), "usage": self.usage,
+                    "calls": list(self.calls), "events": list(self.events)}
 
     def recording(self, since: int = 0) -> Iterator[dict]:
         """The scrubbable recording's rows after `since`, numbered as the stream numbers them (nothing when the
@@ -145,17 +150,20 @@ class Live:
     def __init__(self, feed: Feed, client: Any, ledger_path: str | None, notes_dir: str | None = None,
                  ledger_every: float = 0.5, events_every: float = 2.0, snapshot_every: float = 8.0,
                  snapshot_idle_every: float = 40.0, notes_every: float = 2.0, settle: float = 0.6,
-                 sleep: Callable[[float], None] = time.sleep):
+                 sleep: Callable[[float], None] = time.sleep, usage: Any = None, usage_every: float = 5.0):
+        """`usage`: a usage_watch.UsageWatch (the operator's `--usage` paths), or None for a page without
+        token counts."""
         self.feed, self.client = feed, client
         self.tail = ledger_tail.LedgerTail(ledger_path) if ledger_path else None
         self.notes = notebook_watch.NotebookWatch(notes_dir)
+        self.usage, self.usage_every = usage, usage_every
         self.ledger_every, self.events_every = ledger_every, events_every
         self.snapshot_every, self.snapshot_idle_every = snapshot_every, snapshot_idle_every
         self.notes_every, self.settle = notes_every, settle
         self.sleep = sleep
         self.event_seq = 0
         self.snapshot_due = 0.0          # a write-kind call asks for a snapshot `settle` seconds later
-        self.last = {"events": 0.0, "snapshot": 0.0, "notes": 0.0}
+        self.last = {"events": 0.0, "snapshot": 0.0, "notes": 0.0, "usage": 0.0}
         # The snapshot is the one poll that costs the game a plot loop, so it runs at `snapshot_every` only while
         # something moves -- a write or wait call landed, a runtime event fired, or the last read differed from the
         # one before -- and at `snapshot_idle_every` otherwise (a seat reading screens, a game sitting at a boundary).
@@ -231,8 +239,23 @@ class Live:
         for rec in self.notes.poll():
             self.feed.push("notebook", rec)
 
+    def step_usage(self) -> None:
+        """Tokens per seat, when the clients' usage files or the ledger moved (usage_watch.py)."""
+        if not self.usage:
+            return
+        try:
+            data = self.usage.poll()
+        except Exception as e:
+            self.feed.push("status", {"source": "usage", "err": str(e)[:200]})
+            return
+        if data is not None:
+            self.feed.push("usage", data)
+
     def tick(self, now: float) -> None:
         self.step_ledger(now)
+        if now - self.last["usage"] >= self.usage_every:
+            self.step_usage()
+            self.last["usage"] = now
         if now - self.last["events"] >= self.events_every:
             self.step_events()
             self.last["events"] = now

@@ -240,6 +240,65 @@ class SourceTests(unittest.TestCase):
             sessions, skipped = report.read([d])
             self.assertEqual((sessions, skipped), ([], 1))
 
+    def test_the_clients_own_file_of_a_cycle_is_that_cycle_again(self):
+        """`--usage logs --usage ~/.codex/sessions` is how a running cycle is read per request; once the loop
+        has kept its copy, the rollout in the client's directory is the same requests a second time (#189)."""
+        with tempfile.TemporaryDirectory() as d:
+            logs, home = Path(d) / "logs", Path(d) / "codex" / "2026" / "11" / "13"
+            shutil.copytree(FIXTURES / "cycles", logs)
+            home.mkdir(parents=True)
+            head, _ = cycle.read(logs / "codex-c1.jsonl")
+            shutil.copy(logs / "codex-c1.rollout.jsonl",
+                        home / f"rollout-2026-11-13T22-55-48-{head.get('session') or 'thread'}.jsonl")
+            alone, _ = report.read([logs])
+            both, skipped = report.read([logs, Path(d) / "codex"])
+            self.assertEqual([s["name"] for s in both], [s["name"] for s in alone])
+            self.assertEqual(skipped, 1)                    # the ledger in the log directory, as before
+            self.assertEqual(rows.total(r for s in both for r in s["usage"]),
+                             rows.total(r for s in alone for r in s["usage"]))
+
+    def test_every_request_is_on_one_seat_and_the_seats_add_up(self):
+        calls = ledger("cycles/calls.jsonl")
+        for r in calls:
+            if r["client"] == "grok/grok-4.6":
+                r["seat"] = 1
+        sessions, _ = report.read([FIXTURES / "cycles"])
+        for s in sessions:                                   # the loop's header says which seat a cycle played
+            if s["head"]["agent"] == "grok":
+                s["head"]["seat"] = 1
+                for r in s["usage"]:
+                    r["seat"] = 1
+        report.place(sessions, calls)
+        u = report.summary(sessions, join.turn_groups(calls)[0], prices.load())
+        self.assertEqual([s["seat"] for s in u["seats"]], [0, 1])
+        self.assertEqual({k: sum(s[k] for s in u["seats"]) for k in KEYS}, {k: u["total"][k] for k in KEYS})
+        grok_cycle = next(s for s in sessions if s["head"]["agent"] == "grok")
+        self.assertEqual({k: u["seats"][1][k] for k in KEYS}, rows.total(grok_cycle["usage"]),
+                         "a seat's line holds its sessions whole: the fixed part too")
+        self.assertEqual(u["seats"][1]["clients"], [{"client": "grok/grok-4.6", "model": "grok-4.6-build"}])
+        self.assertIn("cost", u["seats"][0])
+        self.assertNotIn("cost", u["seats"][1])
+        lines = R.usage_footer(u, 0)
+        self.assertTrue(any(line.startswith("usage seat 0 [claude/sonnet, codex/gpt-6.1-sol]: ") and "est $" in line
+                            for line in lines), lines)
+        self.assertTrue(any(re.match(r"usage seat 1 \[grok/grok-4\.6\]: \d+ requests, \d+ read \(.* from cache\), "
+                                     r"\d+ written\Z", line) for line in lines), lines)
+
+    def test_a_bare_session_is_on_the_seat_its_calls_were_made_from(self):
+        calls = ledger("session/calls.jsonl")
+        sessions, u, _ = summarized([FIXTURES / "session" / "codex-rollout.jsonl"], calls)
+        self.assertEqual(sessions[0]["head"], {})
+        seat = calls[0]["seat"]
+        self.assertEqual(report.session_seat(sessions[0]), seat)
+        self.assertIsNotNone(u["fixed"])
+        self.assertEqual([(s["seat"], s["requests"]) for s in u["seats"]], [(seat, u["total"]["requests"])])
+        # with no ledger at all the requests are on no seat
+        report.place(sessions, [])
+        self.assertIsNone(report.session_seat(sessions[0]))
+        nowhere = report.summary(sessions, [], prices.load())
+        self.assertEqual([(s["seat"], s["requests"]) for s in nowhere["seats"]], [(None, u["total"]["requests"])])
+        self.assertTrue(any(line.startswith("usage on no seat [") for line in R.usage_footer(nowhere, 0)))
+
     def test_what_the_client_counted_beyond_its_rows_is_a_line_of_its_own(self):
         s = {"usage": [rows.row(t=1.0, client="c", model="m", session="s", request="1",
                                 counts={"new_in": 10, "out": 5}, source="x")],
@@ -247,7 +306,8 @@ class SourceTests(unittest.TestCase):
         self.assertEqual(report.short_by(s), {"new_in": 15, "out": 4})
         self.assertIsNone(report.short_by({**s, "own": None}))
         u = {"total": {"requests": 1, "new_in": 10, "cache_read": 0, "cache_write": 0, "out": 5, "reasoning": 0},
-             "fixed": None, "unplaced": None, "turns": {}, "clients": [], "prices": {"as_of": "x", "unlisted": []},
+             "fixed": None, "unplaced": None, "turns": {}, "clients": [], "seats": [],
+             "prices": {"as_of": "x", "unlisted": []},
              "sessions": [{"name": "a.jsonl", "client": None, "models": ["m"], "requests": 1, "new_in": 10,
                            "cache_read": 0, "cache_write": 0, "out": 5, "reasoning": 0, "short_by": {"new_in": 15, "out": 4}}]}
         lines = R.usage_footer(u, 0)

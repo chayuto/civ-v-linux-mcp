@@ -6,7 +6,7 @@
 // Player: a cursor (rows applied) and a clock (recording time). Playing advances the clock at `speed` and applies
 // the rows that fall due; silence longer than MAX_GAP is skipped. A seek applies the rows between (forward) or
 // rebuilds from the start (backward) -- through plan(): every call, event and status row in order, but of the rows
-// that only replace state (hello, snapshot, a seat's notebook) just the latest one before each call and before the
+// that only replace state (hello, snapshot, a seat's notebook, the usage counts) just the latest one before each call and before the
 // target, since a snapshot is the whole world and a rebuild through 1,400 of them (a 72 MB recording) painted
 // nothing anyone saw. (A call reads the world as it stood -- unit positions, names -- so the snapshot before it stays.)
 // `following` means the cursor sits at the tail of a live stream and new rows apply as they arrive, as the page
@@ -39,13 +39,13 @@ export class Timeline {
   }
 
   // The rows a jump from row `from` to row `n` applies, in order: every call, event and status row, and of hello,
-  // snapshot and each seat's notebook only the last one before the next call and before `n` -- the earlier ones
-  // are state the later one replaces, and a call is painted against the world as it stood at the call.
+  // snapshot, usage and each seat's notebook only the last one before the next call and before `n` -- the earlier
+  // ones are state the later one replaces, and a call is painted against the world as it stood at the call.
   plan(from, n) {
     const rows = this.rows, keep = [], satisfied = new Set();
     for (let i = n - 1; i >= from; i--) {
       const r = rows[i];
-      const key = r.type === "hello" || r.type === "snapshot" ? r.type
+      const key = r.type === "hello" || r.type === "snapshot" || r.type === "usage" ? r.type
         : r.type === "notebook" ? `notebook:${r.data && r.data.seat}` : null;
       if (!key) { keep.push(i); if (r.type === "call") satisfied.clear(); }
       else if (!satisfied.has(key)) { satisfied.add(key); keep.push(i); }

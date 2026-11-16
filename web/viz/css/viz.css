@@ -47,6 +47,15 @@ aside#side {
   min-height: 0;
 }
 aside section { display: flex; flex-direction: column; min-height: 0; border-bottom: 1px solid var(--line); }
+#tokenbox { flex: 0 0 auto; max-height: 34%; }
+#tokenbox[hidden] { display: none; }
+#tokens { overflow-y: auto; padding: 0 12px 8px; font-family: var(--mono); font-size: 11.5px; }
+#tokens table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+#tokens thead th { color: var(--dim); font-weight: 400; text-align: right; padding-left: 8px; white-space: nowrap; cursor: help; }
+#tokens td { text-align: right; padding: 1px 0 1px 8px; }
+#tokens tbody th { text-align: left; font-weight: 400; color: var(--dim); white-space: nowrap; }
+#tokens tr.seat th { color: var(--seat, var(--dim)); font-weight: 600; padding-top: 5px; white-space: normal; }
+#tokens tr.seat .meta { color: var(--dim); font-weight: 400; }
 #thinking { flex: 3 1 0; }
 #tickerbox { flex: 2 1 0; }
 #notebox { flex: 2 1 0; border-bottom: none; }

@@ -1,4 +1,22 @@
-# Resume here -- 2026-11-15 (night): main = 2.16.0 (runtime v341, 9 tools, 2260 tests; tagged, released, on PyPI).
+# Resume here -- 2026-11-15 (late night): main = 2.16.0 + tokens per seat on the spectator page (unreleased; runtime v341, 9 tools, 2272 tests).
+**#189 is done and closed: token accounting stage 6, the last stage.** `python -m harness.spectator --ledger
+<ledger> --usage <paths>` shows per seat what its model read and wrote, for the seat's latest turn and for the
+game (`harness/spectator/usage_watch.py`, the Tokens section of `web/viz/js/panels.js`). The watcher counts
+nothing: it runs the report's `read`, `place`, `summary` when a usage file or the ledger changed and pushes the
+whole count as one `usage` event, which the recording keeps. Checked live on the t242 board (read-only, no seat
+played): page, `/state`, the replayed recording and `ledger_report.py --usage logs/bench191/433be54` all say 165
+requests, 13,780,657 read, 30,900 written; scrubbed forward, back and to before the first count in a scratch
+Chrome over the DevTools protocol. Two things came with it: the report prints a line per seat
+(`summary()["seats"]`), and a finished cycle is no longer counted twice when the client's own directory is among
+the paths. **Not done: no seat-loop cycle was run under a live spectator with `--usage`**; that a running Codex
+or Claude cycle is counted per request from the client's directory is covered by a test on the fixture cycles
+with their end row cut off, not by play. **No release cut**: the change is in CHANGELOG Unreleased, and it would
+be 2.17.0 (README release row, test count 2272, AGENT_INSTALL line 8, PyPI, both forges' Release objects; the
+registry republish for 2.16.0 is still the user's). **No issue is open.** The game is on the t242 board,
+untouched; `logs/stage6-check/` (gitignored) holds the recording, the screenshot and the two small scripts of
+the browser check.
+
+# Previous -- 2026-11-15 (night): main = 2.16.0 (runtime v341, 9 tools, 2260 tests; tagged, released, on PyPI).
 **2.16.0 is #191, closed.** The last three cuts (league summary, the relationship on a leader's screen, the digest
 without bookkeeping) were read back on Claude Code, Codex and Grok, one cycle of 10 turns each on the t242 board
 (`logs/bench191/433be54/<agent>-t10/`; `docs/NOTES.md`, "The last three cuts, read back on three clients"): no

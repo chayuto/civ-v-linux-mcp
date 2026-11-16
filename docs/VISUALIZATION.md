@@ -51,6 +51,19 @@ seat's activity beyond what the game UI shows).
 | Terrain | one dump at attach | 1 |
 | Dynamic state (players, cities, units, borders, each human seat's fog, active player) | a snapshot poll: after every write- or wait-kind ledger row (once it settles), every 8 s while the world moves (a write or wait landed, a runtime event fired, the last read differed), every 40 s while it is still; an unchanged read is not pushed | 1 per read |
 | Notes, assignments, orders | the notebook files on disk (`harness/notes.py`, `<game_key>-seat<N>.json`), watched by mtime | 0 |
+| Tokens per seat (only with `--usage`) | the clients' own usage records joined to the ledger by the report's code (`harness/usage/report.py`), read again when a file or the ledger changed | 0 |
+
+**Tokens.** With `--usage <file or dir>` (repeatable; the paths `scripts/ledger_report.py --usage` takes) the side
+panel gains a Tokens section: per seat the model requests, tokens read, the share of them read from the cache,
+tokens written and a list-price estimate, once for the seat's latest turn and once for the game (hover a figure
+for its parts). The numbers are the report's for the same files at that moment; the "game" row is its
+`usage seat N` line. "This game" is whatever the paths hold, so point them at the files of the game being
+watched. A seat-loop cycle that is still running is counted per request only for Grok (its stream carries the
+requests) unless the client's own directory is among the paths (`--usage logs/night --usage ~/.codex/sessions`);
+otherwise a Codex or Claude cycle arrives whole when it ends. A seat view shows that seat's counts alone. This
+is the operator's view: no seat reads the page (`docs/TOKEN_ACCOUNTING.md`, rule 1), and the event carries counts
+and labels only. The counts are in the recording, so a replay needs no usage file; a recording made without
+`--usage` has no Tokens section.
 
 The spectator is one more tunerd client; the game accepts one tuner connection and tunerd already multiplexes
 the seat servers, so its reads queue with theirs. Every read is a query; it never sends a command.
@@ -94,6 +107,7 @@ harness/spectator/
   events.py                   unfiltered H.events reader
   ledger_tail.py              JSONL tailer (handles truncation)
   notebook_watch.py           notes / assignments / orders per seat from the notes dir
+  usage_watch.py              tokens per seat from the clients' usage records, by the report's own steps (--usage)
   feed.py                     merges the sources into one sequenced stream; records; replays
   server.py                   SSE (/events), bootstrap (/state), the recording (/recording), static files (/)
   __main__.py                 `python -m harness.spectator` (live, --record, --replay)
@@ -111,12 +125,13 @@ web/viz/
   js/map_canvas.js            the hex map on a 2D canvas: two cached bitmaps (terrain; fog + borders) over the visible
                               window, a live pass each redraw, d3.zoom for pan and wheel, a hit test behind the hover
                               tip (docs/CANVAS_MIGRATION.md)
-  js/panels.js                thinking column, ticker, seat switcher, replay controls
+  js/panels.js                thinking column, ticker, seat switcher, the token counts
   js/app.js                   wiring
 ```
 
 Stream event types: `hello` (map, players, seats), `snapshot`, `call` (a ledger row), `event` (a runtime
-event, with its `audience`), `notebook` (one seat's notes/assignments/orders), `turn` (active player / turn
+event, with its `audience`), `notebook` (one seat's notes/assignments/orders), `usage` (tokens per seat, the
+whole count each time: a seek applies only the latest, like a snapshot), `turn` (active player / turn
 changed). Every event carries `seq` and `t`; the page resumes an SSE with `Last-Event-ID`.
 
 `GET /recording` (JSON lines, `?since=N`) is the recording so far under the seq numbers the stream carries:
@@ -131,6 +146,7 @@ precede the snapshot pushed before it, so the page's slider runs on a per-row ti
 CIV5_CALL_LOG=logs/calls.jsonl  <the seat servers, as usual>
 python -m harness.spectator --ledger logs/calls.jsonl --record logs/spectate.jsonl   # live, http://127.0.0.1:8765
 python -m harness.spectator --replay logs/spectate.jsonl                              # no game needed
+python -m harness.spectator --ledger logs/calls.jsonl --usage logs/night --record logs/spectate.jsonl   # with tokens per seat
 ```
 
 A replay starts at the recording's first row and plays on the page's clock; `--speed N` additionally makes the
@@ -141,7 +157,8 @@ server pace the stream it pushes (the page's player does not need it).
 `python3 scripts/spectator_demo.py logs/spectator_demo.jsonl` writes a synthetic recording (two seats, a small
 wrapped map, every event type in the shapes the real feed produces); `python -m harness.spectator --replay
 logs/spectator_demo.jsonl` plays it. Tests: `tests/test_attention.py` (the ledger fields),
-`tests/test_spectator.py` (tail, notebooks, feed, poller cadence, SSE, the recording route),
+`tests/test_spectator.py` (tail, notebooks, the usage watcher against the report, feed, poller cadence, SSE, the
+recording route),
 `tests/test_spectator_lua.py` (the two Lua queries under lupa), `tests/test_viz_js.py` (every page module parses
 under node, and the timeline/player's seeks, silence skipping, tail following and dedupe; skipped without node).
 

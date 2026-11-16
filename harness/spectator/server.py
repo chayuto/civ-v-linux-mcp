@@ -4,7 +4,7 @@ Read-only, stdlib only.
 GET /            -> web/viz/index.html
 GET /<path>      -> a file under the web dir (no `..`)
 GET /state       -> feed.state(): mode, whether there is a recording, the map, the last snapshot, the notebooks,
-                    recent calls and events
+                    tokens per seat (`usage`, null without --usage), recent calls and events
 GET /recording   -> the recording so far as JSON lines (one event per line, the stream's seq numbers);
                     `?since=N` from seq N on; 404 when the spectator has none (live without --record)
 GET /events      -> text/event-stream; `?since=N` or `Last-Event-ID: N` resumes; a comment line every KEEPALIVE

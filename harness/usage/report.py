@@ -53,7 +53,8 @@ def read(paths: Iterable[Path | str], server: str = "civ5") -> tuple[list[dict],
     """(sessions, files left out). A session is `{"name", "path", "kind": "cycle" | "session", "head",
     "usage", "own"}`: the cycle's header ({} for a bare session), its usage rows and the client's own total
     (None where the file holds none). Left out: a file no reader takes a row from, and a bare session with no
-    civ5 call."""
+    civ5 call. The client's own file of a session a cycle already gave is passed over without being counted
+    as left out: it is that cycle again."""
     pool = files(paths)
 
     def find(agent: str, session: str | None) -> Path | None:
@@ -69,6 +70,10 @@ def read(paths: Iterable[Path | str], server: str = "civ5") -> tuple[list[dict],
             used.add(Path(head["usage_path"]))
         out.append({"name": p.name, "path": str(p), "kind": "cycle", "head": head, "usage": usage,
                     "own": cycle.own_total(p)})
+    # A cycle's record is a copy the loop kept; the client's own file of the same session may be among the
+    # paths too (the live record a running cycle is read from, `--usage logs/night --usage ~/.codex/sessions`).
+    # It is the same requests, so it is not a second session.
+    in_cycles = {(r["source"], r["session"]) for s in out for r in s["usage"] if r.get("session")}
     for p in pool:
         if p in used:
             continue
@@ -82,6 +87,8 @@ def read(paths: Iterable[Path | str], server: str = "civ5") -> tuple[list[dict],
                 break
         if not any(r["calls"] for r in usage):
             skipped += 1
+            continue
+        if all((r["source"], r.get("session")) in in_cycles for r in usage):
             continue
         out.append({"name": p.name, "path": str(p), "kind": "session", "head": {}, "usage": usage, "own": total})
     return out, skipped
@@ -149,6 +156,16 @@ def short_by(session: dict) -> dict[str, int] | None:
     return {k: own[k] - mine[k] for k in rows.COUNTS if k in own and own[k] != mine[k]}
 
 
+def session_seat(session: dict) -> Any:
+    """The seat a session played: the cycle header's, else the one seat its placed requests are on. None for
+    a bare session whose requests are on no seat or on several (its `fixed` part then belongs to no seat)."""
+    seat = session["head"].get("seat")
+    if seat is not None:
+        return seat
+    seats = {p["seat"] for p in session["placed"] if p["where"] == "turn" and p["seat"] is not None}
+    return seats.pop() if len(seats) == 1 else None
+
+
 def summary(sessions: list[dict], groups: list[dict], table: dict) -> dict:
     """Everything the report prints about usage. `groups` are the report's own turn groups
     (each a dict with the `rows` of the ledger it holds); a request placed in a turn goes to the report turn
@@ -162,6 +179,10 @@ def summary(sessions: list[dict], groups: list[dict], table: dict) -> dict:
                    `turn_out` (the tokens of the requests placed in them), `fixed` (the read tokens of its
                    fixed requests), `fresh_in` and `reply_bytes` (new input and cache writes of the requests
                    placed in turns, against the bytes of the replies in those turns)
+        seats      per seat, in seat order: `seat`, the tally of every request of that seat (its turns, and
+                   the `fixed` and `unplaced` requests of the sessions that played it: `session_seat`) and
+                   its `clients` ({client, model}); `seat` None last, for requests on no seat. The seats add
+                   up to `total` (a cost only where every model among them has a price)
         sessions   per session: name, kind, client, models, tally, `own`, `short_by`
         prices     the table's date and the models seen that it does not list
     """
@@ -171,12 +192,17 @@ def summary(sessions: list[dict], groups: list[dict], table: dict) -> dict:
     unplaced: list[dict] = []
     everything: list[dict] = []
     clients: dict[tuple, dict] = {}
+    seats: dict[Any, dict] = {}
     listed = []
     for s in sessions:
         seen_groups: dict[tuple, set[int]] = {}
+        own_seat = session_seat(s)
         for p in s["placed"]:
             everything.append(p)
             key = (s["label"] or p["client"], p["model"])
+            at = seats.setdefault(p["seat"] if p["seat"] is not None else own_seat, {"rows": [], "clients": set()})
+            at["rows"].append(p)
+            at["clients"].add(key)
             c = clients.setdefault(key, {"rows": [], "fixed": [], "placed": [], "turns": set(), "fresh": 0,
                                          "ledger": {}})
             c["rows"].append(p)
@@ -206,8 +232,12 @@ def summary(sessions: list[dict], groups: list[dict], table: dict) -> dict:
                             "turn_read": read_in(in_turns), "turn_out": in_turns["out"],
                             "fixed": read_in(rows.total(c["fixed"])), "fresh_in": c["fresh"],
                             "reply_bytes": sum(c["ledger"].values())})
+    out_seats = [{"seat": seat, **tally(at["rows"], table),
+                  "clients": [{"client": c, "model": m} for c, m in sorted(at["clients"], key=lambda k: (str(k[0]), str(k[1])))]}
+                 for seat, at in sorted(seats.items(), key=lambda kv: (kv[0] is None, not isinstance(kv[0], int),
+                                                                       kv[0] if isinstance(kv[0], int) else str(kv[0])))]
     return {"turns": {i: tally(ps, table) for i, ps in sorted(per_turn.items())},
             "fixed": tally(fixed, table) if fixed else None,
             "unplaced": tally(unplaced, table) if unplaced else None,
-            "total": tally(everything, table), "clients": out_clients, "sessions": listed,
+            "total": tally(everything, table), "clients": out_clients, "seats": out_seats, "sessions": listed,
             "prices": {"as_of": table.get("as_of"), "unlisted": prices.unlisted(everything, table)}}

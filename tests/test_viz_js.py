@@ -124,6 +124,44 @@ console.log(JSON.stringify(out));
 """
 
 
+USAGE_SCRIPT = """
+import { tokens, usageCells, usageLines } from "%(panels)s";
+import { Timeline } from "%(timeline)s";
+const out = {};
+out.tokens = [0, 812, 999, 1000, 3421, 45678, 598482, 1000000, 1240000, 13780657, 2.5e9, NaN].map(tokens);
+const turn = { requests: 4, new_in: 4562, cache_read: 593920, cache_write: 0, out: 1648, reasoning: 234 };
+const game = { requests: 94, new_in: 150000, cache_read: 6400000, cache_write: 85095, out: 17098, reasoning: 3000, cost: 1.3349 };
+out.turn = usageCells(turn);
+out.game = usageCells(game);
+out.none = usageCells({ requests: 0, new_in: 0, cache_read: 0, cache_write: 0, out: 0, reasoning: 0 });
+const world = { playerName: (id) => ["Maya", "Siam"][id] || `#${id}`, hue: (s) => `hue${s}` };
+const usage = {
+  seats: [
+    { seat: 0, clients: [{ client: "codex/gpt-6.1-sol", model: "gpt-6.1-sol" }, { client: "codex/gpt-6.1-sol", model: "gpt-6.1-mini" }], game, turn: 243, this_turn: turn },
+    { seat: 1, clients: [{ client: "grok/grok-4.6", model: "grok-4.6-build" }], game: turn, turn: null, this_turn: turn },
+    { seat: null, clients: [{ client: null, model: null }], game: turn },
+  ],
+  total: game, prices: { as_of: "2026-11-14", unlisted: [] },
+};
+const brief = (lines) => lines.map((l) => l.head ? [l.head, l.who, l.models, l.hue] : [l.label, l.cells.req]);
+out.observer = brief(usageLines(usage, "observer", world));
+out.seat1 = brief(usageLines(usage, 1, world));
+out.seat2 = usageLines(usage, 2, world);
+out.single = brief(usageLines({ seats: usage.seats.slice(0, 1), total: game }, "observer", world));
+// usage is state: a jump takes the latest count before each call and before the target
+const tl = new Timeline();
+[
+  { seq: 1, t: 1, type: "usage", data: { total: { requests: 1 } } },
+  { seq: 2, t: 2, type: "usage", data: { total: { requests: 2 } } },
+  { seq: 3, t: 3, type: "call", data: { tool: "turn", seat: 0 } },
+  { seq: 4, t: 4, type: "usage", data: { total: { requests: 3 } } },
+  { seq: 5, t: 5, type: "usage", data: { total: { requests: 4 } } },
+].forEach((row) => tl.add(row));
+out.plan = tl.plan(0, 5).map((i) => tl.rows[i].seq);
+console.log(JSON.stringify(out));
+"""
+
+
 @unittest.skipUnless(NODE, "node is not installed")
 class VizModuleTests(unittest.TestCase):
     def node(self, script: str) -> str:
@@ -149,6 +187,31 @@ class VizModuleTests(unittest.TestCase):
         self.assertEqual(out["fresh"], "unit 7 · r3")
         self.assertEqual(out["order"], "city 2 · Monument")
         self.assertEqual(out["bare"], "")
+
+    def test_token_counts_read_as_three_figures_per_seat_and_replace_each_other(self):
+        """The Tokens section (stage 6, #189): a count in three figures, a line for a seat's latest turn and one
+        for its game, the sum only under two or more seats, a seat view holding that seat alone; and a usage
+        row is state, so a jump applies the latest one."""
+        out = json.loads(self.node(USAGE_SCRIPT % {"panels": (JS / "panels.js").as_uri(), "timeline": (JS / "timeline.js").as_uri()}))
+        self.assertEqual(out["tokens"], ["0", "812", "999", "1.00k", "3.42k", "45.7k", "598k", "1.00M", "1.24M", "13.8M",
+                                         "2.50B", "—"])
+        self.assertEqual({k: out["turn"][k] for k in ("req", "read", "cached", "out", "cost")},
+                         {"req": "4", "read": "598k", "cached": "99%", "out": "1.65k", "cost": ""})
+        self.assertEqual(out["turn"]["split"], "4562 new · 593920 from cache · 0 written to cache")
+        self.assertEqual(out["turn"]["think"], "1648 written, 234 of them thinking")
+        self.assertEqual({k: out["game"][k] for k in ("req", "read", "cached", "out", "cost")},
+                         {"req": "94", "read": "6.64M", "cached": "96%", "out": "17.1k", "cost": "$1.33"})
+        self.assertEqual((out["none"]["read"], out["none"]["cached"], out["none"]["cost"]), ("0", "—", ""))
+        self.assertEqual(out["observer"], [
+            ["Seat 0 · Maya", "codex/gpt-6.1-sol", "gpt-6.1-sol, gpt-6.1-mini", "hue0"], ["turn t243", "4"], ["game", "94"],
+            ["Seat 1 · Siam", "grok/grok-4.6", "grok-4.6-build", "hue1"], ["turn ?", "4"], ["game", "4"],
+            ["On no seat", "no label", "no model", None], ["game", "4"],
+            ["All seats", "", "", None], ["game", "94"]])
+        self.assertEqual(out["seat1"], [["Seat 1 · Siam", "grok/grok-4.6", "grok-4.6-build", "hue1"], ["turn ?", "4"], ["game", "4"]])
+        self.assertEqual(out["seat2"], [])
+        self.assertEqual(out["single"], [["Seat 0 · Maya", "codex/gpt-6.1-sol", "gpt-6.1-sol, gpt-6.1-mini", "hue0"],
+                                         ["turn t243", "4"], ["game", "94"]])
+        self.assertEqual(out["plan"], [2, 3, 5])
 
     def test_timeline_and_player(self):
         out = json.loads(self.node(PLAYER_SCRIPT % {"url": (JS / "timeline.js").as_uri()}))

@@ -105,7 +105,7 @@ function apply(ev, arrived, jump = false) {
       break;
     case "snapshot":
       world.setSnapshot(ev.data);
-      if (!jump) redraw(true);
+      if (!jump) { redraw(true); panels.usage(); }     // the counts' headings name the players the snapshot brings
       break;
     case "call":
       handleCall(ev.data, arrived, jump);
@@ -119,6 +119,10 @@ function apply(ev, arrived, jump = false) {
       world.setNotebook(ev.data);
       if (!jump) { panels.notebook(); panels.renderViews(); }
       break;
+    case "usage":
+      world.setUsage(ev.data);
+      if (!jump) panels.usage();
+      break;
     case "status":
       panels.status(true, `${ev.data.source}: ${ev.data.err || "ok"}`);
       break;
@@ -131,12 +135,13 @@ function repaint() {
   for (const row of history.calls) panels.call(row, summarize(row, world));
   for (const ev of history.events) panels.event(ev);
   panels.notebook();
+  panels.usage();
   redraw(true);
   scrubber.render();
 }
 
 // Everything the page knows, gone: a seek backwards rebuilds from the recording's first row (every call in order,
-// the latest hello / snapshot / notebook before the target; Timeline.plan).
+// the latest hello / snapshot / notebook / usage before the target; Timeline.plan).
 function reset() {
   world.reset();
   attention.reset();
@@ -169,6 +174,7 @@ async function start() {
   if (st.hello) apply({ type: "hello", data: st.hello }, arrived, true);
   if (st.snapshot) apply({ type: "snapshot", data: st.snapshot }, arrived, true);
   for (const nb of Object.values(st.notebooks || {})) apply({ type: "notebook", data: nb }, arrived, true);
+  if (st.usage) apply({ type: "usage", data: st.usage }, arrived, true);
   for (const c of st.calls || []) apply(c, arrived, true);
   for (const e of st.events || []) apply(e, arrived, true);
   repaint();

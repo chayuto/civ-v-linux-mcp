@@ -1,4 +1,5 @@
-// The side panels and the header: view switcher, toggles, the thinking column, the event ticker, the notebook.
+// The side panels and the header: view switcher, toggles, the token counts, the thinking column, the event ticker,
+// the notebook.
 import { callLabel, titleCase } from "./world.js";
 
 const MAX_ROWS = 120;
@@ -12,6 +13,7 @@ export class Panels {
       views: document.getElementById("views"), calls: document.getElementById("calls"),
       ticker: document.getElementById("ticker"), notes: document.getElementById("notes"),
       turn: document.getElementById("turn"), conn: document.getElementById("conn"),
+      tokenbox: document.getElementById("tokenbox"), tokens: document.getElementById("tokens"),
     };
     for (const id of ["heat", "ghost", "borders", "labels"]) {
       const box = document.getElementById(`tg-${id}`);
@@ -90,7 +92,74 @@ export class Panels {
     this.el.notes.innerHTML = parts.join("") || `<div class="note meta">no notebook yet</div>`;
   }
 
+  // ---------------------------------------------------------- tokens (the operator's view; no seat is told)
+  // What each seat's model read and wrote, this turn and this game, as the spectator's --usage paths count it.
+  // The section stays hidden on a page with no usage (no --usage, or a recording made without it).
+  usage() {
+    const u = this.world.usage;
+    const lines = u ? usageLines(u, this.view, this.world) : [];
+    this.el.tokenbox.hidden = !lines.length;
+    if (!lines.length) { this.el.tokens.innerHTML = ""; return; }
+    const p = u.prices || {};
+    const priced = `tokens at the list prices of ${p.as_of || "?"}: an estimate of tokens spent, not money paid`
+      + ((p.unlisted || []).length ? `; no list price for ${p.unlisted.join(", ")}` : "");
+    const body = lines.map((l) => l.head
+      ? `<tr class="seat" style="--seat:${l.hue || "var(--dim)"}"><th scope="rowgroup" colspan="6">${esc(l.head)}`
+        + (l.who ? ` <span class="meta" title="${esc(l.models)}">${esc(l.who)}</span>` : "") + `</th></tr>`
+      : `<tr><th scope="row">${esc(l.label)}</th><td>${l.cells.req}</td><td title="${esc(l.cells.split)}">${l.cells.read}</td>`
+        + `<td>${l.cells.cached}</td><td title="${esc(l.cells.think)}">${l.cells.out}</td><td>${l.cells.cost}</td></tr>`).join("");
+    this.el.tokens.innerHTML = `<table><thead><tr><td></td><th scope="col" title="model requests">req</th>`
+      + `<th scope="col" title="tokens the model read: new input, cache reads and cache writes">read</th>`
+      + `<th scope="col" title="the share of them read from the provider's cache">cached</th>`
+      + `<th scope="col" title="tokens the model wrote, thinking included">out</th>`
+      + `<th scope="col" title="${esc(priced)}">est $</th></tr></thead><tbody>${body}</tbody></table>`;
+  }
+
   clearLists() { this.el.calls.innerHTML = ""; this.el.ticker.innerHTML = ""; }
+}
+
+// 812, 3.42k, 45.6k, 1.24M: three figures, since a turn reads a thousand times what it writes.
+export function tokens(n) {
+  if (!Number.isFinite(n)) return "—";
+  const fig = (x) => (x >= 100 ? x.toFixed(0) : x >= 10 ? x.toFixed(1) : x.toFixed(2));
+  const a = Math.abs(n);
+  if (a < 1000) return String(Math.round(n));
+  if (a < 999500) return fig(n / 1e3) + "k";
+  if (a < 999500000) return fig(n / 1e6) + "M";
+  return fig(n / 1e9) + "B";
+}
+
+// One count as the table's cells: requests, tokens read (new input, cache reads, cache writes), the share of
+// them that came from the cache, tokens written, and the cost where every model in the count has a list price.
+export function usageCells(t) {
+  const read = t.new_in + t.cache_read + t.cache_write;
+  return {
+    req: String(t.requests), read: tokens(read), cached: read ? `${Math.round(100 * t.cache_read / read)}%` : "—",
+    out: tokens(t.out), cost: typeof t.cost === "number" ? `$${t.cost.toFixed(2)}` : "",
+    split: `${t.new_in} new · ${t.cache_read} from cache · ${t.cache_write} written to cache`,
+    think: `${t.out} written, ${t.reasoning} of them thinking`,
+  };
+}
+
+// The table's lines for a view: per seat a heading, its latest turn and its game; the observer also gets the
+// requests on no seat and, under two or more headings, the sum. A seat view holds that seat alone.
+export function usageLines(usage, view, world) {
+  const out = [];
+  const seats = (usage.seats || []).filter((s) => view === "observer" || s.seat === view);
+  for (const s of seats) {
+    const known = Number.isInteger(s.seat);
+    const clients = s.clients || [];
+    out.push({ head: known ? `Seat ${s.seat} · ${world.playerName(s.seat)}` : "On no seat", hue: known ? world.hue(s.seat) : null,
+               who: [...new Set(clients.map((c) => c.client || "no label"))].join(", "),
+               models: [...new Set(clients.map((c) => c.model || "no model"))].join(", ") });
+    if (s.this_turn) out.push({ label: `turn ${Number.isInteger(s.turn) ? "t" + s.turn : "?"}`, cells: usageCells(s.this_turn) });
+    out.push({ label: "game", cells: usageCells(s.game) });
+  }
+  if (view === "observer" && seats.length > 1 && usage.total) {
+    out.push({ head: "All seats", hue: null, who: "", models: "" });
+    out.push({ label: "game", cells: usageCells(usage.total) });
+  }
+  return out;
 }
 
 function trim(ol) { while (ol.children.length > MAX_ROWS) ol.removeChild(ol.lastChild); }

@@ -44,7 +44,7 @@ export function stream(since, { onEvent, onStatus }) {
       if ((st.seq || 0) < seq) location.reload();
     } catch { /* still down; EventSource retries by itself */ }
   };
-  for (const type of ["hello", "snapshot", "call", "event", "notebook", "status"]) {
+  for (const type of ["hello", "snapshot", "call", "event", "notebook", "usage", "status"]) {
     es.addEventListener(type, (m) => {
       try {
         const ev = JSON.parse(m.data);

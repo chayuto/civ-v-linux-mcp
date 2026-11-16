@@ -12,7 +12,8 @@ export class World {
     this.units = new Map();      // "owner:id" -> unit row (Civ V unit and city ids are per player)
     this.cities = new Map();     // "owner:id" -> city row
     this.notebooks = new Map();  // seat -> {notes, assignments, orders}
-    this.seats = [];             // seat ids in the order first seen in the ledger
+    this.usage = null;           // tokens per seat: {seats: [{seat, clients, game, turn, this_turn}], total, prices}
+    this.seats = [];           // seat ids in the order first seen in the ledger
   }
 
   get w() { return this.map ? this.map.w : 0; }
@@ -66,6 +67,9 @@ export class World {
   }
 
   setNotebook(rec) { this.notebooks.set(rec.seat, rec); this.noteSeat(rec.seat); }
+
+  // The whole count each time: an event replaces the one before it.
+  setUsage(u) { this.usage = u; }
 
   noteSeat(seat) {
     if (Number.isInteger(seat) && !this.seats.includes(seat)) this.seats.push(seat);

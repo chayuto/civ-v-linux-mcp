@@ -15,8 +15,9 @@ with its rows and turns, so two models on the same seat stay apart.
 `out`, `think` (the part of `out` that was reasoning) and `est $`. Requests before a session's first call are
 the line `fixed` (system prompt, tool listing), requests the ledger does not cover the line `unplaced`. The
 footer gives the total, each client and model (tokens per turn, cache share, the `fixed` share, and new input
-tokens per reply byte: what bytes / 4 should have been), and how each session's rows stand against the client's
-own total. `est $` is tokens at the list prices of `harness/usage/prices.json`, an estimate of tokens spent and
+tokens per reply byte: what bytes / 4 should have been), each seat (the line the spectator page's "game" row
+repeats, `python -m harness.spectator --usage`), and how each session's rows stand against the client's own
+total. `est $` is tokens at the list prices of `harness/usage/prices.json`, an estimate of tokens spent and
 never money paid; a model with no list price gets no dollar figure anywhere.
 
 Usage:
@@ -158,7 +159,13 @@ def usage_footer(u: dict, skipped: int) -> list[str]:
         out.append(f"usage {c['client'] or '(no label)'} {c['model'] or '(no model)'}: {c['requests']} requests, "
                    f"{r} read ({share(c['cache_read'], r)} from cache, {share(c['fixed'], r)} fixed), "
                    f"{c['out']} written{per}{byte}" + (f", est ${c['cost']:.2f}" if "cost" in c else ""))
-    equal = [s for s in u["sessions"] if s["short_by"] == {}]
+    for s in u["seats"]:
+        r = usage_report.read_in(s)
+        who = ", ".join(sorted({str(c["client"] or "(no label)") for c in s["clients"]}))
+        out.append(f"usage {'seat ' + str(s['seat']) if s['seat'] is not None else 'on no seat'} [{who}]: "
+                   f"{s['requests']} requests, {r} read ({share(s['cache_read'], r)} from cache), {s['out']} written"
+                   + (f", est ${s['cost']:.2f}" if "cost" in s else ""))
+    equal =[s for s in u["sessions"] if s["short_by"] == {}]
     differ = [s for s in u["sessions"] if s["short_by"]]
     silent = [s for s in u["sessions"] if s["short_by"] is None]
     out.append(f"sessions: {len(equal)} equal to the client's own total, {len(differ)} differ, "

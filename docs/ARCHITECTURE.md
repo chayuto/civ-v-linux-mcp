@@ -141,6 +141,11 @@ does not cover the session). `usage/report.py` sums per turn for `scripts/ledger
 `(tool, action)` reply brought, one long session against two short ones). The test of every stage is one
 equality: the per-turn sums of a session equal the client's own total.
 
+The spectator page is the one other reader (`harness/spectator/usage_watch.py`, `--usage`): it runs the
+report's `read`, `place` and `summary` again whenever a usage file or the ledger changed and pushes the count
+per seat as one `usage` event that replaces the one before. It counts nothing itself, so the page, a replayed
+recording and the report agree; the spectator is the operator's process and no seat server imports it.
+
 ## Tests
 `scripts/check.sh` (1063, no game) runs the suite after checking that liblua5.4, lupa and luac are installed:
 without them the 50 Lua test files would skip and a green run would say nothing about the runtime. The shipped

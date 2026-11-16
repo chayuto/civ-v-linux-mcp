@@ -77,6 +77,11 @@ files are plain files of the user running the game. Separate machines, or a LAN 
   model, cache rates where the provider publishes them. It is never an invoice, and under a subscription no
   such money was paid. A model the table does not list prints tokens and no dollar figure anywhere (the Grok
   CLI's build models are the live case).
+- **The spectator's "game" is what its paths hold.** The ledger names no game, so the page's token counts
+  (`--usage`) are the report's for the files given: a directory holding older sessions counts them too, and a
+  seat that several clients played is one line. A count trails the play by the client's own writing: a request
+  is on the page once the client has written it, in its turn once the ledger has the call, and a Codex or
+  Claude seat-loop cycle only when it ends unless the client's own directory is among the paths.
 - **A Grok stream from before 2.15.0 has no time.** The seat loop stamps each line since stage 2; an older
   stream's requests cannot be placed in a turn and stay under `fixed` or `unplaced`.
 - **No seat reads any of it.** By rule, not by omission: a seat that knew its budget would play differently, and

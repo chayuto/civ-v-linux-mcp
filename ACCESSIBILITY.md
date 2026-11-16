@@ -101,6 +101,10 @@ Nothing has been tested with assistive technology, so nothing is listed as suppo
 - **The spectator view is visual only.** The map is a single canvas with a generic label and no text
   alternative for what it shows. The same information is in the call ledger it is drawn from;
   `scripts/ledger_report.py` prints it as a table.
+- **Its token counts are a table, their detail is hover-only.** The Tokens section is a table with row and
+  column headers, but what a figure is made of (new input, cache reads, thinking) and the note on the price
+  estimate are `title` texts a keyboard does not reach. `scripts/ledger_report.py --usage` prints the same
+  counts in full.
 - **Colour carries meaning there.** Each seat's attention and actions are told apart by colour alone, and
   the palette has not been checked for colour-vision deficiencies or contrast.
 - **It animates.** Plots pulse as a seat reads them, and the page does not honour the browser's
