@@ -19,7 +19,18 @@ with no wait in between starts one). The bench cycles are 10 groups for 10 turns
 report's per-turn means and the page's "turn" row are whole turns, no total moved; CHANGELOG Unreleased has the
 figures, and the limitation it removes is gone from `docs/LIMITATIONS.md`. **No issue is open.** The game is on the t242 board,
 untouched; `logs/stage6-check/` (gitignored) holds the recording, the screenshot and the two small scripts of
-the browser check.
+the browser check. **2026-11-16, both changes seen in the user's Chrome through the extension** (520fd3e, the
+board read-only, no seat played, no console message on any load): the live page's game row is the report's (165
+requests, 13.8M read, 97% cached, 30.9k written) and its "turn t251" row is the report's whole t251 of the Grok
+cycle (7 requests, 11,253 new + 1,021,952 cached, 2,264 written); the seat view keeps the section; the replayed
+three-count recording scrubs by clicks on the bar to the end, to before the first count (section hidden) and
+back into the middle. **A count that grows under an open page**: a spectator on a copy of the Grok cycle with
+its stream cut to a third showed 10 requests, then 40, then 71 (the report's 7,145,562 read, 13,802 written) as
+the rest was appended in two parts, with no reload; scrubbed back it showed the first count, and "live" brought
+the last (`logs/stage6-check/chrome-2026-11-16/grow-live.jsonl`). That is a file growing, not a seat playing:
+the turn row stood at zero until the end because the ledger copy was already whole, and Codex's and Claude's
+per-request read from the client's own directory is still the fixture test only. The window stayed 1920 wide
+(a resize is ignored under COSMIC), so no narrow layout was looked at.
 
 # Previous -- 2026-11-15 (night): main = 2.16.0 (runtime v341, 9 tools, 2260 tests; tagged, released, on PyPI).
 **2.16.0 is #191, closed.** The last three cuts (league summary, the relationship on a leader's screen, the digest
