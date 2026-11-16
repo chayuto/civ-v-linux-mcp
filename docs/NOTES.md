@@ -3732,3 +3732,38 @@ after the combat narration has read the turn markers; the wake check never looke
 Left alone: a leader's line that is also the open screen's `speech` (about 1 KB a run; the reader of a digest
 without the screen needs it), an alert that repeats a notification (110 to 220 bytes a run), and `seq` (it orders
 the rows). With this the three items #191 named are done; what is owed is one read-back run per client.
+
+### The last three cuts, read back on three clients (#191, 2026-11-15)
+
+The same run again (each client alone on the Maya t242 board, one cycle of 10 turns, effort low) on main at
+433be54, runtime v341; the v341 column is the run of the afternoon before, which had the finish reply's two cuts and
+none of these three. Bytes are the ledger's, tokens the subtraction of stage 5. Logs: `logs/bench191/433be54/<agent>-t10/`.
+
+| client | league read t245, v341 | now | league read t246, v341 | now | finish reply, v341 | now | its tokens, v341 | now |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Claude Code, sonnet | 13,280 | 9,145 | not read | 16,449 | 4,923 | 4,504 | 2,127 | 1,994 |
+| Codex, gpt-6.1-sol | 13,280 | 9,145 | 28,391 | 16,449 | 5,277 | 4,683 | 1,576 | 1,145 |
+| Grok, grok-4.6 | 13,280 | 9,145 | 19,247 (compact) | 11,187 (compact) | 5,792 | 5,588 | 1,786 | 1,745 |
+
+What the handoff asked the runs to show:
+
+- **No seat asked for `detail="full"`.** Six league reads: four by default, one `detail="summary"` (Claude Code at
+  t246, which is the default now and was the full read before) and one `detail="compact"` (Grok at t246, as the day
+  before). The five `order(to="league")` calls that followed (two votes, three proposals) were all accepted.
+- **No seat read a civ to get back what a leader's screen left out.** Claude Code and
+  Codex made no `state(what="civ")` call at all (Codex made one the day before). Grok made two at t243, the list of
+  civs it also read at t243 the day before and a trade catalog; neither follows an answer and neither is the
+  relationship read.
+- **No seat read `turn` `status` for a marker.** Codex and Grok made no such call. Claude Code made one, the last
+  call of its cycle, after `turn(action="end")` on its tenth turn: a seat stopping at its budget, not one looking
+  for where a turn began.
+
+Two things the runs do not settle. Grok answered the three complaints of t243 with "Get over it" where it had
+apologised the day before (Claude Code and Codex apologised both days); the speech and the buttons were the same,
+and one run cannot say whether the leaner relationship or the model's own draw moved it. And the session totals did
+not fall: 3.5 M tokens read over 51 requests for Claude Code (2.4 to 2.8 M over 36 to 48 before), 3.2 M over 42
+for Codex (2.9 to 4.1 M), 7.1 M over 70 for Grok (5.8 to 6.5 M over 64 to 67). The calls that were added are play
+(Grok read ten tactical views against five and wrote ten notes), not a second read of something a reply dropped;
+a session's reading is still its requests times its context, as the note on the first two cuts says. The saving is
+per reply: 31% of a league read in a session, 42% between sessions, 9 to 11% more off a finish reply for Claude
+Code and Codex and 4% for Grok.

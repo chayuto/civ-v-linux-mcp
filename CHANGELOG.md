@@ -14,8 +14,21 @@ Two counters, on purpose (GitLab #26):
 
 Dates are the day the change was committed; "live tNNN" is the game turn it was checked on.
 
-## Unreleased
+## 2.16.0 -- A turn's replies say it once (2026-11-15)
 
+Runtime v341, 9 tools, 2260 tests. #191, closed: the replies stage 5 measured as the largest (the end of a turn,
+the league read, a leader's screen, the digest) without what they said twice or said to nobody. No call changes;
+reply shapes do. A client that read a status flag saying false, `detail="summary"` as the full league read, a
+notification's `id` or a `turn_start` event row finds it absent (`docs/TOOL_REPLIES.md` has every shape).
+
+- **The last three cuts read back on three clients (2026-11-15).** Claude Code, Codex and Grok each alone on the
+  Maya t242 board for ten turns, on main at 433be54. The league read in a session is 9.1 KB against 13.3 KB,
+  between sessions 16.4 KB against 28.4 KB; a finish reply is 4,504 bytes for Claude Code, 4,683 for Codex and
+  5,588 for Grok (6,171, 6,887 and 6,316 in 2.15.0). No seat asked for `detail="full"`, none read a civ to get
+  back what a leader's screen left out, none read `turn` `status` for a marker, and the five league orders that
+  followed the reads were accepted. Not shown: a smaller session. The totals (3.5 M, 3.2 M and 7.1 M tokens read)
+  are at or above the earlier runs' ranges because the seats made more requests, and a session's reading is its
+  requests times its context (`docs/NOTES.md`, "The last three cuts, read back on three clients").
 - **The reply to a turn's end repeats less (#191, runtime v340).** Stage 5 measured `turn` `finish` at 21 to 55% of
   what the replies add to a context; of the 87 such replies of the Claude Code runs, three repeats were a fifth of the
   bytes. `todo.ongoing` rows no longer carry the same note each (ten automated units, 75 bytes ten times, 8%):
@@ -47,7 +60,7 @@ Dates are the day the change was committed; "live tNNN" is the game turn it was 
   runs: 13.7 KB to 9.3 KB in a session, 29.5 KB to 17.5 KB between sessions. `detail="full"` is the read as it
   was; `detail="compact"` is the summary less its remaining prose (5.2 KB and 12.2 KB). The library's own
   `Game.league_status()` still reads it whole. Live on the Maya t242 board through a stdio server: 18.8 KB
-  full, 10.5 KB by default, 6.4 KB compact. Not yet read back on a playing client. 2244 tests.
+  full, 10.5 KB by default, 6.4 KB compact. 2244 tests.
 - **A leader's screen carries a leaner relationship (#191; Python only, runtime v341 unchanged).** The
   `relationship` inside a discussion (in `question()`, in a finish or wait reply's `status.discussion`, in an
   answer's `next`) was 1.2 KB a screen, 8% of a finish reply: nine flags saying false, the leader and player the

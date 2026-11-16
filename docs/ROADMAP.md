@@ -339,7 +339,9 @@ so the client's own usage records are joined to the call ledger on the operator'
 result. **Stages 0 to 5 and 7 are done and released as `v2.15.0` (2026-11-14)**; what stage 5 measured is at the
 end of `docs/NOTES.md` and under `docs/measurements/2026-11-14-what-grows/`. Open after the release: #189 (the
 spectator shows tokens per seat) and #191 (trim the reply to `turn` `finish`, the largest part of what the
-replies add to a context).
+replies add to a context). **#191 is done and released as `v2.16.0` (2026-11-15, runtime v341, 2260 tests)**: the
+finish reply, the league read, a leader's relationship and the digest's events each say a thing once, read back on
+Claude Code, Codex and Grok (`docs/NOTES.md`, the five #191 sections). #189 is the one issue open.
 
 First thoughts on CivBench (arXiv 2604.07733): `docs/CIVBENCH.md`. Decided 2026-11-13: no Vox Populi, a benchmark of our own; the sketch is `docs/BENCHMARK.md`. #189 (spectator) is off the 2.15.0 milestone.
 

@@ -1,4 +1,17 @@
-# Resume here -- 2026-11-14 (night): main = 2.15.0 + #191's five cuts (unreleased; runtime v341, 9 tools, 2260 tests).
+# Resume here -- 2026-11-15 (night): main = 2.16.0 (runtime v341, 9 tools, 2260 tests; tagged, released, on PyPI).
+**2.16.0 is #191, closed.** The last three cuts (league summary, the relationship on a leader's screen, the digest
+without bookkeeping) were read back on Claude Code, Codex and Grok, one cycle of 10 turns each on the t242 board
+(`logs/bench191/433be54/<agent>-t10/`; `docs/NOTES.md`, "The last three cuts, read back on three clients"): no
+seat asked for `detail="full"`, none read a civ after a leader's screen for what it left out, none read `turn`
+`status` for a marker. Per reply the cuts hold (league 31 to 42% smaller, a finish reply 12 to 32% under 2.15.0);
+a session's total did not fall, because the seats made more requests. Grok answered t243's three complaints with
+"Get over it" where it apologised the day before: one run, not settled. **The registry republish is the user's**
+(`mcp-publisher publish`). **Open: #189 only** (the spectator shows tokens per seat). The stack was cold-started
+this session (Steam, `launch_civ5.sh main`, tunerd on the plain socket, no seat table); the game is on the t242
+board again, notebook as it was (`logs/bench191/notebook-before.json`). Every run on that board pays one refused
+finish at t249 for the completed dig (#140's engine order, not new).
+
+# Previous -- 2026-11-14 (night): main = 2.15.0 + #191's five cuts (unreleased; runtime v341, 9 tools, 2260 tests).
 **#191 after this session, all Python:** the relationship on a leader's screen (`relationship_inline`,
 `harness/game_parts/diplomacy.py`: no false flag, no zero counter, no `ok` / `player` / `leader`, `discuss` as a
 list, no `text` on a history row that repeats `speech`; 38% smaller on the 27 leader screens of the v341 bench
