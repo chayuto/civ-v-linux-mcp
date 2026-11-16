@@ -51,6 +51,13 @@ Dates are the day the change was committed; "live tNNN" is the game turn it was 
   the record the loop kept and again from the client's own rollout of the same session (43 requests became 86
   on the Codex bench run). The client's file of a session a cycle already gave is now passed over. Both paths
   together are how a cycle that is still running is read per request, which the live page needs.
+- **Fixed: the counts in a narrow window (2026-11-16).** Under 900 px the page stacks its panel below the map,
+  and the Tokens section, held to a third of that panel, showed its heading and the seat's line with the two
+  rows of numbers behind a scrollbar (a 71 px box in a 209 px panel at 800 x 523). With counts on the page the
+  stacked panel is now a grid: the counts in a column on the left (340 px, half the width at most), Thinking,
+  Events and Notebook on the right at the heights they had before the section existed. A page with no counts
+  stacks as before, and the wide layout is untouched. Seen in Chrome at 800 and 600 px; CSS only
+  (`web/viz/css/viz.css`).
 
 ## 2.16.0 -- A turn's replies say it once (2026-11-15)
 

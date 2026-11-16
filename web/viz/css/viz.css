@@ -102,4 +102,14 @@ footer#scrub #sc-live.on { color: #3fd66b; border-color: #3fd66b; }
 @media (max-width: 900px) {
   main { flex-direction: column; }
   aside#side { flex: 0 0 40vh; border-left: none; border-top: 1px solid var(--line); }
+  /* Stacked, the panel is short and wide, so the counts stand beside the three lists and not on top of them: a
+     third of that height hid the numbers behind a scrollbar, and what it took came out of the lists. */
+  aside#side:has(#tokenbox:not([hidden])) {
+    display: grid; grid-template-columns: minmax(0, min(340px, 50%)) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 3fr) minmax(0, 2fr) minmax(0, 2fr);
+  }
+  aside#side:has(#tokenbox:not([hidden])) > section { grid-column: 2; }
+  aside#side:has(#tokenbox:not([hidden])) > #tokenbox {
+    grid-column: 1; grid-row: 1 / -1; max-height: none; border-bottom: none; border-right: 1px solid var(--line);
+  }
 }

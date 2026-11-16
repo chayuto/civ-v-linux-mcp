@@ -29,8 +29,13 @@ its stream cut to a third showed 10 requests, then 40, then 71 (the report's 7,1
 the rest was appended in two parts, with no reload; scrubbed back it showed the first count, and "live" brought
 the last (`logs/stage6-check/chrome-2026-11-16/grow-live.jsonl`). That is a file growing, not a seat playing:
 the turn row stood at zero until the end because the ledger copy was already whole, and Codex's and Claude's
-per-request read from the client's own directory is still the fixture test only. The window stayed 1920 wide
-(a resize is ignored under COSMIC), so no narrow layout was looked at.
+per-request read from the client's own directory is still the fixture test only. **The narrow layout was broken
+and is fixed** (`web/viz/css/viz.css`, the 900 px rule): stacked under the map, the Tokens section got a third
+of a 209 px panel and showed its heading and the seat's line, the two rows of numbers behind a scrollbar. With
+counts on the page the stacked panel is now a grid, the counts in a column on the left (340 px, half the width
+at most) and the three lists on the right at the heights they had before the section existed; no counts, the
+old stack. Seen at 800 x 523, 600 x 823 and 800 x 823 (no counts), the wide layout unchanged at 1300.
+The first try's resize was undone by hand, not ignored by COSMIC: `resize_window` works on this desktop.
 
 # Previous -- 2026-11-15 (night): main = 2.16.0 (runtime v341, 9 tools, 2260 tests; tagged, released, on PyPI).
 **2.16.0 is #191, closed.** The last three cuts (league summary, the relationship on a leader's screen, the digest
