@@ -137,12 +137,12 @@ class TurnTests(unittest.TestCase):
 
 
 class FixtureTests(unittest.TestCase):
-    """The eleven-turn Codex session of the join's tests."""
+    """The thirteen-turn Codex session of the join's tests."""
 
     def test_the_parts_add_up(self):
         s = fixture_session()
         m = measure.session(s, TABLE)
-        self.assertEqual([t["turn"] for t in m["turns"]], [26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 38])
+        self.assertEqual([t["turn"] for t in m["turns"]], list(range(26, 39)))        # 36 and 37 were a finish each
         per_turn = join.per_turn(s["placed"])
         self.assertEqual([t["requests"] for t in m["turns"]], [x["requests"] for x in per_turn if x["where"] == "turn"])
         self.assertEqual(sum(t["requests"] for t in m["turns"]) + m["fixed"]["requests"], m["requests"])
@@ -153,9 +153,9 @@ class FixtureTests(unittest.TestCase):
                                delta=len(m["labels"]))                      # each label's share is rounded
         self.assertEqual(sum(a["calls"] for a in m["labels"] if (a["tool"], a["action"]) != measure.NO_CALL),
                          sum(len(p["calls"]) for p in s["placed"][:-1]))
-        self.assertEqual(m["halves"]["turns"], 10)
+        self.assertEqual(m["halves"]["turns"], 12)
         self.assertEqual(m["halves"]["one"]["read"],
-                         sum(report.read_in(t) for t in m["turns"][:10]) + report.read_in(m["fixed"]))
+                         sum(report.read_in(t) for t in m["turns"][:12]) + report.read_in(m["fixed"]))
 
     def test_every_matched_call_carries_the_ledgers_reply_size(self):
         s = fixture_session()
@@ -185,16 +185,16 @@ class ScriptTests(unittest.TestCase):
         for heading in ("## By turn position", "## What the replies brought", "## Session length",
                         "## `session/codex-rollout.jsonl`"):
             self.assertIn(heading, text)
-        self.assertIn("| 11 | 38 | 14 |", text)
+        self.assertIn("| 13 | 38 | 14 |", text)
         self.assertIn("est $", text)
 
     def test_a_short_session_is_left_out_and_json_prints_the_measured_sessions(self):
-        out, err = self.run_script(*self.ARGS, "--min-turns", "12")
+        out, err = self.run_script(*self.ARGS, "--min-turns", "14")
         self.assertEqual(out, "")
         self.assertIn("0 of 1", err)
         out, _ = self.run_script(*self.ARGS, "--json")
         [m] = [json.loads(line) for line in out.splitlines()]
-        self.assertEqual((m["client"], len(m["turns"])), ("codex/gpt-6.1-sol", 11))
+        self.assertEqual((m["client"], len(m["turns"])), ("codex/gpt-6.1-sol", 13))
 
     def test_an_unlisted_model_gets_no_dollar_column(self):
         with tempfile.TemporaryDirectory() as d:

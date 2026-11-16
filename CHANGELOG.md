@@ -34,6 +34,19 @@ Dates are the day the change was committed; "live tNNN" is the game turn it was 
 - **The report prints a line per seat** (`usage seat 0 [codex/gpt-6.1-sol]: ...`, `usage on no seat` for a
   session the ledger does not cover), `summary()["seats"]`: a seat's turns and the `fixed` and `unplaced`
   requests of the sessions that played it, adding up to the total. It is the line the page's "game" row repeats.
+- **A ledger turn is a game turn (2026-11-16).** `call_ledger.turn_groups` ended a turn at every wait that
+  succeeded, so a wait a leader's screen stopped cut the turn in two and a turn ended with one call vanished
+  into the turn before it: the three bench cycles of 433be54, ten turns each, were 18, 20 and 18 groups. A wait
+  now ends the turn only when it returned into another turn (the rows' own `turn`); a wait that returns a later
+  turn than the one before it is a turn of its own; a call at another turn with no wait in between starts one
+  (the turn came round while a screen was being answered, a save was loaded). Rows without a turn group as
+  before. Those cycles are 10 groups each, t242 to t251, and across the 10,110 rows of this machine's ledger no
+  group holds two turn numbers. What changes: the report's per-turn table (one line a turn; this was the
+  limitation "a turn with a leader's screen in its wait prints as several rows"), its per-turn means (Codex on
+  that run: 315,478 tokens read per turn over 10 turns, where it printed 157,739 over 20), the turn a request is
+  placed in, and the page's "turn" row, which was the last fragment (4 requests at t251) and is the turn (7).
+  No total moves. `usage_measure.py` already joined the fragments; a session with turns ended in one call now
+  lists them (the session fixture is thirteen turns, t26 to t38, where it read as eleven).
 - **Fixed: a cycle counted twice.** `--usage logs/night --usage ~/.codex/sessions` read a seat-loop cycle from
   the record the loop kept and again from the client's own rollout of the same session (43 requests became 86
   on the Codex bench run). The client's file of a session a cycle already gave is now passed over. Both paths

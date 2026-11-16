@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Per-turn cost of play from a call ledger (`CIV5_CALL_LOG`, harness/call_ledger.py; GitLab #36).
 
-A turn is every call up to and including the wait that ends it (end_turn / finish_turn / wait_for_my_turn).
+A turn is every call made while the game stood at that turn, up to and including the wait that ended it
+(`call_ledger.turn_groups`: a wait a leader's screen stopped does not end the turn, a turn ended with one call
+is a turn).
 Inspection (reads) and orders (writes) are counted apart from waiting, whose seconds are the AIs' turns and the
 bridge, not the model's overhead. `~tok` is bytes / 4: no client tokenizer is available here.
 
@@ -72,8 +74,9 @@ def clients(rows: list[dict]) -> list[dict]:
 
 
 def turns(rows: list[dict]) -> list[dict]:
-    """One summary per turn, the rows grouped by `call_ledger.turn_groups` (a turn is closed by a wait that
-    succeeded; the turn number is the first one a non-wait answer named, else the one the previous wait returned),
+    """One summary per turn, the rows grouped by `call_ledger.turn_groups` (a turn is ended by a wait that
+    returned into another turn; the turn number is the first one a non-wait row carries, else the one the previous
+    wait returned),
     each seat's rows on their own, in order of the turns' first rows."""
     return [summary for summary, _ in grouped(rows)]
 

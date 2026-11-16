@@ -1,4 +1,4 @@
-# Resume here -- 2026-11-15 (late night): main = 2.16.0 + tokens per seat on the spectator page (unreleased; runtime v341, 9 tools, 2272 tests).
+# Resume here -- 2026-11-15 (late night): main = 2.16.0 + tokens per seat on the spectator page (unreleased; runtime v341, 9 tools, 2276 tests).
 **#189 is done and closed: token accounting stage 6, the last stage.** `python -m harness.spectator --ledger
 <ledger> --usage <paths>` shows per seat what its model read and wrote, for the seat's latest turn and for the
 game (`harness/spectator/usage_watch.py`, the Tokens section of `web/viz/js/panels.js`). The watcher counts
@@ -11,8 +11,13 @@ Chrome over the DevTools protocol. Two things came with it: the report prints a 
 the paths. **Not done: no seat-loop cycle was run under a live spectator with `--usage`**; that a running Codex
 or Claude cycle is counted per request from the client's directory is covered by a test on the fixture cycles
 with their end row cut off, not by play. **No release cut**: the change is in CHANGELOG Unreleased, and it would
-be 2.17.0 (README release row, test count 2272, AGENT_INSTALL line 8, PyPI, both forges' Release objects; the
-registry republish for 2.16.0 is still the user's). **No issue is open.** The game is on the t242 board,
+be 2.17.0 (README release row, the test count, AGENT_INSTALL line 8, PyPI, both forges' Release objects; the
+registry was republished for 2.16.0 by the user). **The user, 2026-11-16: no release until what is left is
+done.** After #189, the same night: **a ledger turn is a game turn** (`call_ledger.turn_groups`; a wait a
+leader's screen stopped no longer ends the turn, a turn ended with one call is a turn, a call at another turn
+with no wait in between starts one). The bench cycles are 10 groups for 10 turns (18 to 20 before), the
+report's per-turn means and the page's "turn" row are whole turns, no total moved; CHANGELOG Unreleased has the
+figures, and the limitation it removes is gone from `docs/LIMITATIONS.md`. **No issue is open.** The game is on the t242 board,
 untouched; `logs/stage6-check/` (gitignored) holds the recording, the screenshot and the two small scripts of
 the browser check.
 

@@ -85,7 +85,7 @@ class CycleFixtureTests(unittest.TestCase):
 
 
 class SessionFixtureTests(unittest.TestCase):
-    """A Codex session outside the seat loop: eleven turns, 69 calls, the ledger of the same hour."""
+    """A Codex session outside the seat loop: thirteen turns (t26 to t38), 69 calls, the ledger of the same hour."""
 
     def test_every_request_lands_in_one_turn_and_the_turns_add_up_to_the_sessions_own_total(self):
         lines = (FIXTURES / "session" / "codex-rollout.jsonl").read_text(encoding="utf-8").splitlines()
@@ -98,10 +98,11 @@ class SessionFixtureTests(unittest.TestCase):
         self.assertEqual([(x["where"], x["turn"], x["requests"]) for x in per_turn],
                          [("fixed", None, 1), ("turn", 26, 8), ("turn", 27, 6), ("turn", 28, 4), ("turn", 29, 6),
                           ("turn", 30, 8), ("turn", 31, 4), ("turn", 32, 2), ("turn", 33, 4), ("turn", 34, 3),
-                          ("turn", 35, 8), ("turn", 38, 14)])
+                          ("turn", 35, 4), ("turn", 36, 2), ("turn", 37, 2), ("turn", 38, 14)])     # 36 and 37: a finish each
         self.assertEqual(sum(p["matched"] for p in placed), 69)
         self.assertEqual(sum(len(g["rows"]) for g in groups), 69)
-        self.assertEqual([g["open"] for g in groups], [False] * 10 + [True])
+        self.assertEqual([g["turn"] for g in groups], list(range(26, 39)))
+        self.assertEqual([g["open"] for g in groups], [False] * 12 + [True])
         self.assertEqual([p["group"] for p in placed if p["where"] == "turn"],
                          sorted(p["group"] for p in placed if p["where"] == "turn"))        # turns never run backwards
 
@@ -205,6 +206,41 @@ class TurnGroupsTests(unittest.TestCase):
         self.assertEqual([(g["turn"], len(g["rows"]), g["open"]) for g in got], [(4, 4, False), (5, 2, False), (6, 1, True)])
         self.assertEqual(call_ledger.turn_groups([]), [])
         self.assertEqual(json.loads(json.dumps([g["turn"] for g in got])), [4, 5, 6])
+
+    def shape(self, book):
+        return [(g["turn"], [r.get("action", "") for r in g["rows"]], g["open"]) for g in call_ledger.turn_groups(book)]
+
+    def test_a_wait_that_came_back_at_its_own_turn_did_not_end_it(self):
+        """A leader's screen stops the wait: the answers and the next wait are still that turn (the bench cycles
+        of 2026-11-15 were ten turns in 18 to 20 groups)."""
+        book = [L(1, "state/units", turn=243), L(2, "turn/finish", turn=243), L(3, "question/", turn=243),
+                L(4, "answer/1", turn=243), L(5, "turn/wait", turn=243), L(6, "question/", turn=243),
+                L(7, "answer/accept", turn=243), L(8, "turn/wait", turn=244), L(9, "state/units", turn=244),
+                L(10, "turn/finish", turn=244), L(11, "answer/leave", turn=244)]
+        self.assertEqual(self.shape(book), [
+            (243, ["units", "finish", "", "1", "wait", "", "accept", "wait"], False),
+            (244, ["units", "finish", "leave"], True)])               # stopped again, and the ledger ends there
+
+    def test_a_turn_with_nothing_to_do_but_end_it_is_a_turn(self):
+        book = [L(1, "state/units", turn=35), L(2, "turn/finish", turn=36), L(3, "turn/wait", turn=36),
+                L(4, "turn/finish", turn=37), L(5, "turn/finish", turn=38), L(6, "state/units", turn=38)]
+        self.assertEqual(self.shape(book), [(35, ["units", "finish", "wait"], False), (36, ["finish"], False),
+                                            (37, ["finish"], False), (38, ["units"], True)])
+
+    def test_a_call_at_another_turn_with_no_wait_in_between_starts_a_turn(self):
+        # the turn came round while a leader's screen was being answered: the refused finish already says 94
+        book = [L(1, "state/units", turn=93), L(2, "turn/finish", turn=93), L(3, "answer/1", turn=93),
+                L(4, "turn/finish", ok=False, turn=94), L(5, "order/unit", turn=94), L(6, "turn/finish", turn=95),
+                L(7, "turn/finish", ok=False, turn=95), L(8, "state/units", turn=95),
+                L(9, "state/units", turn=242), L(10, "turn/finish", turn=243)]          # a save was loaded
+        self.assertEqual(self.shape(book), [(93, ["units", "finish", "1"], False), (94, ["finish", "unit", "finish"], False),
+                                            (95, ["finish", "units"], False), (242, ["units", "finish"], False)])
+
+    def test_rows_without_a_turn_fall_back_to_the_wait_alone(self):
+        book = [L(1, "state/units"), L(2, "turn/finish"), L(3, "turn/wait"), L(4, "state/units"), L(5, "turn/finish"),
+                L(6, "turn/finish")]
+        self.assertEqual(self.shape(book), [(None, ["units", "finish", "wait"], False),
+                                            (None, ["units", "finish", "finish"], False)])
 
 
 if __name__ == "__main__":

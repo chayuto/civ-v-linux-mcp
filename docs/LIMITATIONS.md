@@ -86,8 +86,6 @@ files are plain files of the user running the game. Separate machines, or a LAN 
   stream's requests cannot be placed in a turn and stay under `fixed` or `unplaced`.
 - **No seat reads any of it.** By rule, not by omission: a seat that knew its budget would play differently, and
   another seat's spend is something the game does not show. There is no budget and no refusal when one is spent.
-- **The ledger report prints a turn with a leader's screen in its wait as several rows.** The measurement tables
-  join them; `scripts/ledger_report.py` does not yet. The sums are right either way.
 
 ## Still to be seen live
 

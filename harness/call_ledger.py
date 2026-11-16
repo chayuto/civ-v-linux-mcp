@@ -130,21 +130,48 @@ def row(tool: str, seat: Any, text: str, seconds: float, trips: int | None, now:
 
 
 def turn_groups(rows: list[dict]) -> list[dict]:
-    """Rows (one seat's, in file order) split into turns: `[{"turn", "rows", "open"}]`. A turn is every call up to
-    and including the wait that ends it; a refused end of turn leaves it open, and waits straight after the one
-    that succeeded (`finish`, then `wait`) belong to the same turn. The turn number is the first one a non-wait
-    answer named, else the one the previous turn's wait returned. Only the last group can be `open` (no wait has
-    closed it yet). `scripts/ledger_report.py` and the usage join (`harness/usage/join.py`) both group by this."""
+    """Rows (one seat's, in file order) split into game turns: `[{"turn", "rows", "open"}]`. A turn is every call
+    made while the game stood at that turn, up to and including the wait that ended it. The rows' own `turn`
+    says where the game stood (`row` stamps every call with the last turn a reply named):
+
+    - A wait that succeeded ends the turn when it returned into another turn. One that came back at the turn
+      it was called in did not: a leader's screen stopped it, and the answers and the next wait are still
+      that turn (ten turns of 2026-11-15 were 18 to 20 groups before this was read).
+    - A refused end of turn leaves the turn open.
+    - After the wait that ended a turn, a wait at the turn it returned (`finish`, then `wait`) still belongs
+      to it; a wait that returns a later turn ended a turn of its own, one with nothing to do but end it;
+      any other call is the next turn's first.
+    - A call at another turn than the one before it, with no wait of this seat in between, starts a turn too
+      (the turn came round while a leader's screen was being answered; a save was loaded).
+
+    A row without a turn (a ledger from before the stamp) falls back to the wait alone: one that succeeded
+    ends the turn. The turn number is the first one a non-wait row carries, else the one the previous turn's
+    wait returned. Only the last group can be `open` (no wait has ended it yet). `scripts/ledger_report.py`,
+    the usage join (`harness/usage/join.py`) and the spectator's token counts all group by this."""
     groups: list[list[dict]] = []
     cur: list[dict] = []
     closed = False
+    playing: int | None = None       # the turn the current group's calls were made in
+    returned: int | None = None      # the turn the wait that ended the current group returned into
     for r in rows:
-        if closed and r["kind"] != "wait":
+        t = r["turn"] if isinstance(r.get("turn"), int) else None
+        ended = r["kind"] == "wait" and r["ok"]
+        if not cur:
+            new = False
+        elif closed:
+            new = not ended or (t is not None and returned is not None and t > returned)
+        else:
+            new = not ended and t is not None and playing is not None and t != playing
+        if new:
             groups.append(cur)
-            cur, closed = [], False
+            cur, playing, closed = [], (returned if closed else None), False
         cur.append(r)
-        if r["kind"] == "wait" and r["ok"]:
-            closed = True
+        if ended:
+            closed = t is None or t != playing
+            if closed:
+                returned = t
+        elif t is not None:
+            playing = t
     if cur:
         groups.append(cur)
     out, last_turn = [], None

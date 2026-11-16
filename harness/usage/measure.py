@@ -43,9 +43,10 @@ def requests(placed: list[dict]) -> list[dict]:
 
 
 def turns(placed: list[dict], table: dict) -> list[dict]:
-    """One row per game turn that has a request, in order of play. The ledger's turn groups that follow one
-    another with the same turn number are one turn here (a leader's screen in the middle of the wait closes a
-    group and the turn goes on); the same number met again later is a turn played again after a reload."""
+    """One row per game turn that has a request, in order of play. The ledger's turn groups are game turns
+    since 2026-11-16 (`call_ledger.turn_groups`); groups that follow one another with the same turn number are
+    still read as one turn here (a ledger whose rows carry no turn splits at every wait that succeeded), and the
+    same number met again later is a turn played again after a reload."""
     runs: list[list[dict]] = []
     for p in sorted((p for p in placed if p["where"] == "turn"), key=lambda p: p["group"]):
         if runs and runs[-1][-1]["turn"] == p["turn"]:

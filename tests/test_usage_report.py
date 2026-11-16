@@ -193,7 +193,7 @@ class SessionReportTests(unittest.TestCase):
                + (u["unplaced"] or {}).get(k, 0) for k in rows.COUNTS}
         self.assertEqual(got, own)
         self.assertEqual({k: u["total"][k] for k in rows.COUNTS}, own)
-        self.assertEqual(sum(1 for t in turns if "usage" in t), 11)
+        self.assertEqual(sum(1 for t in turns if "usage" in t), 13)        # t26 to t38
         self.assertAlmostEqual(sum(t["usage"]["cost"] for t in turns if "usage" in t) + u["fixed"]["cost"],
                                u["total"]["cost"], places=3)
 
