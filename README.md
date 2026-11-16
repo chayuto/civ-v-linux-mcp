@@ -32,7 +32,7 @@ the table and sees no more than you would.
 
 | Requirements | Current release | Ways to play |
 | --- | --- | --- |
-| Native Linux Steam build, Brave New World | **2.16.0** · Lua runtime **v341** | Solo · hotseat · LAN · multi-LLM |
+| Native Linux Steam build, Brave New World | **2.17.0** · Lua runtime **v341** | Solo · hotseat · LAN · multi-LLM |
 
 ## On this page
 
@@ -174,8 +174,10 @@ than on scrolling. That is what keeps a turn affordable and the game moving whil
   estimate; every session's per-turn sums equal the client's own total. `scripts/usage_measure.py` says what
   grows: on a late-game board a late turn of a 20-turn session reads three times an early one, two sessions of
   10 turns read 0.62 to 0.88 of one of 20, and the reply that ends a turn is 21 to 55% of what the replies add
-  to the context (`docs/measurements/2026-11-14-what-grows/`). Operator's side only: no seat ever reads a count
-  (`docs/TOKEN_ACCOUNTING.md`).
+  to the context (`docs/measurements/2026-11-14-what-grows/`). The spectator page shows the same counts per
+  seat while a game runs, this turn and this game (`python -m harness.spectator --usage <the client's
+  records>`); a cycle still running is counted request by request. Operator's side only: no seat ever reads a
+  count (`docs/TOKEN_ACCOUNTING.md`).
 - **The largest replies say a thing once.** That measurement pointed at four replies, and each was cut where it
   repeated itself or spoke to nobody: the reply that ends a turn leaves out the status flags that are false, the
   note it put on every automated unit and the events that are the runtime's own bookkeeping; the World Congress

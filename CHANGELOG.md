@@ -14,8 +14,22 @@ Two counters, on purpose (GitLab #26):
 
 Dates are the day the change was committed; "live tNNN" is the game turn it was checked on.
 
-## Unreleased
+## 2.17.0 -- Tokens per seat on the spectator page (2026-11-16)
 
+Runtime v341 (unchanged), 9 tools, 2276 tests. #189, closed: the last stage of the token-accounting plan. The
+spectator page shows what each seat's model read and wrote, this turn and this game, counted by the report's own
+code; the report's turn is a game turn. Python and the page only: no call and no reply changes.
+
+- **Counted under play (2026-11-16).** One Codex cycle of 2 turns (`gpt-6.1-sol`, effort low) on the Maya t242
+  board under a spectator started with `--usage <the loop's log directory> --usage ~/.codex/sessions/2026/11/16`,
+  the page's count read from `/state` every 5 s. Ten seconds into the cycle it said 2 requests, read from
+  Codex's own rollout while the loop's directory held no record of the cycle yet; then 3, 4 and so on to 9 as
+  each request was written, the "turn" row moving from t242 (3 requests) to t243 (5) with the ledger. When the
+  cycle ended and the loop copied the rollout beside its stream, nothing was counted twice: 9 requests, 332,953
+  read (84.7% from the cache), 2,194 written, est $0.15 on the page, as the recording's last `usage` event, and
+  in the report for the log directory alone, for the client's directory alone and for both. Until the cycle's
+  first call was in the ledger (five seconds) the turn row read t251 with zeros: the seat's latest turn in a
+  ledger that holds earlier games. The board was reloaded at t242 afterwards, the notebook put back.
 - **The spectator page shows tokens per seat (2026-11-15; token accounting stage 6, #189).**
   `python -m harness.spectator --ledger <ledger> --usage <file or dir>` (repeatable, the paths
   `scripts/ledger_report.py --usage` takes) adds a Tokens section to the page: per seat the requests, tokens

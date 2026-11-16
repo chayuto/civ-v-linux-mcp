@@ -1,4 +1,26 @@
-# Resume here -- 2026-11-15 (late night): main = 2.16.0 + tokens per seat on the spectator page (unreleased; runtime v341, 9 tools, 2276 tests).
+# Resume here -- 2026-11-16 (small hours): main = 2.17.0 (runtime v341, 9 tools, 2276 tests; tagged, released, on PyPI).
+**2.17.0 is #189 with the two things found after it** (a ledger turn is a game turn; the counts in a narrow
+window). **The one thing that was left is done: a seat-loop cycle under a live spectator with `--usage`.** One
+Codex cycle of 2 turns (`gpt-6.1-sol`, effort low, 105 s) on the t242 board, the spectator on :8765 with
+`--usage logs/stage6-live/codex-t2 --usage ~/.codex/sessions/2026/11/16` (the second path did not exist when the
+spectator started; it was picked up when Codex made it), `/state` read every 5 s
+(`logs/stage6-live/poll.jsonl`, gitignored): 2 requests ten seconds in, counted from Codex's rollout before the
+loop's directory held any record, then one by one to 9, the turn row t242 (3 requests) then t243 (5). At the end
+nothing doubled when the loop copied the rollout beside its stream: 9 requests, 332,953 read, 2,194 written,
+est $0.15 on the page, as the recording's last `usage` event and in `ledger_report.py --usage` for either path
+alone and for both. Before the cycle's first call reached the ledger the turn row read t251 with zeros (the
+seat's latest turn in a ledger that holds the Grok bench run): five seconds, as designed, said in the CHANGELOG.
+Claude's per-request read from its own directory is still the fixture test only; Grok's stream is its record.
+The board was reloaded at t242 and the notebook put back (`cmp` with `logs/bench191/notebook-before.json`);
+the spectator was stopped. **The registry republish is the user's** (`mcp-publisher publish`). **No issue is
+open.** What is known and not built or not seen, none of it filed: the benchmark (`docs/BENCHMARK.md` is a
+sketch not yet agreed; its "Not checked yet" list, a turn-0 board and a stock-AI anchor), the page holding every
+parsed row of a recording, the shim and the launch scripts outside the wheel, the tests that take the live
+per-socket lock (`test_assignments.py::test_the_four_tools`, two LeaderScreenGuard tests), LAN since 0.5.0.
+**"Still open" at the end of this file dates from 2026-10-24 to 26** (the Assyria game, the seat-binding and
+tool-surface stages since released): read it as history until someone prunes it.
+
+# Previous -- 2026-11-15 (late night): main = 2.16.0 + tokens per seat on the spectator page (unreleased; runtime v341, 9 tools, 2276 tests).
 **#189 is done and closed: token accounting stage 6, the last stage.** `python -m harness.spectator --ledger
 <ledger> --usage <paths>` shows per seat what its model read and wrote, for the seat's latest turn and for the
 game (`harness/spectator/usage_watch.py`, the Tokens section of `web/viz/js/panels.js`). The watcher counts
